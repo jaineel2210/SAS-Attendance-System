@@ -391,3 +391,30 @@ All rights reserved.
 
 This project is jointly owned by the above authors.
 Commercial use is prohibited without written permission.
+
+## License & Usage
+
+This project is protected under a Commercial License.
+
+Copyright © 2025
+Jaineel Pandya
+Dhwanil Patel
+
+✔ Allowed:
+- Academic use
+- Learning and research
+- Minor project reference
+- Personal experimentation
+
+✖ Not Allowed:
+- Commercial deployment
+- Selling or reselling
+- SaaS or hosted usage
+- Company or institutional integration
+
+For commercial usage, contact:
+Jaineel Pandya(Primary Contact)
+Dhwanil Patel(Primary Contact)
+Email: jaineelpandya2210@gmail.com
+Email: dhwanilpatel732@gmail.com
+
