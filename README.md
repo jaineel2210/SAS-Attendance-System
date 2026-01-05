@@ -378,3 +378,11 @@ This project is developed for educational purposes. All rights reserved.
 ---
 
 **SecureAttend Pro** - *Revolutionizing Attendance Management with Advanced Security*
+
+## Copyright
+
+© 2025 Jaineel Pandya & Dhwanil Patel  
+All rights reserved.
+
+This project is jointly owned by the above authors.
+Commercial use is prohibited without written permission.
