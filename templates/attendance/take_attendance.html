@@ -1,0 +1,1343 @@
+{% extends "base.html" %}
+
+{% block title %}Take Attendance - Faculty{% endblock %}
+
+{% block content %}
+<!-- Include Socket.IO -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
+<style>
+    /* Custom Animations and Styles */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes pulse {
+        0%, 100% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.05);
+        }
+    }
+
+    .card {
+        animation: fadeInUp 0.5s ease-out;
+        transition: all 0.3s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
+    }
+
+    #qrCodeDisplay img {
+        border-radius: 15px;
+        padding: 20px;
+        background: white;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        animation: pulse 2s infinite;
+    }
+
+    .session-info-item {
+        transition: all 0.3s ease;
+    }
+
+    .session-info-item:hover {
+        transform: translateX(10px);
+        background: #e9ecef !important;
+    }
+
+    .btn {
+        transition: all 0.3s ease;
+        font-weight: 600;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+
+    .btn:active {
+        transform: translateY(0);
+    }
+
+    #endSessionBtn, #endSessionBtnMain {
+        position: relative;
+        overflow: hidden;
+    }
+
+    #endSessionBtn:hover, #endSessionBtnMain:hover {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        transform: scale(1.05);
+    }
+
+    #endSessionBtn::before, #endSessionBtnMain::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.3);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+    }
+
+    #endSessionBtn:hover::before, #endSessionBtnMain:hover::before {
+        width: 300px;
+        height: 300px;
+    }
+
+    #endSessionBtnMain {
+        font-size: 1.1rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        box-shadow: 0 4px 15px rgba(238, 9, 121, 0.4) !important;
+    }
+
+    .alert {
+        animation: fadeInUp 0.5s ease-out;
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+
+    .form-select, .form-control {
+        border-radius: 10px;
+        border: 2px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+
+    .form-select:focus, .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+
+    .badge {
+        font-family: 'Courier New', monospace;
+        letter-spacing: 1px;
+    }
+
+    #statusMessage {
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        max-width: 500px;
+        animation: fadeInUp 0.5s ease-out;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="fas fa-chalkboard-teacher me-2"></i>Take Class Attendance</h4>
+                </div>
+                <div class="card-body">
+                    <!-- QR Code Generation Section -->
+                    <div class="alert alert-info mb-4">
+                        <h6><i class="fas fa-info-circle me-2"></i>QR-Based Attendance Instructions</h6>
+                        <ol class="mb-0">
+                            <li>Ensure all students have captured their faces in the system</li>
+                            <li>Select subject and session type below</li>
+                            <li>Click "Generate QR Code" to create a secure attendance QR</li>
+                            <li>Students scan the QR code with face verification</li>
+                            <li>Monitor real-time attendance and end session when complete</li>
+                        </ol>
+                    </div>
+
+                    <!-- Session Setup -->
+                    <div class="row mb-4" id="sessionSetup">
+                        <div class="col-12">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                    <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Session Configuration</h5>
+                                </div>
+                                <div class="card-body p-4">
+                                    <div class="row g-3">
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-bold"><i class="fas fa-book me-1 text-primary"></i>Subject</label>
+                                            <select id="subject" name="subject" class="form-select form-select-lg shadow-sm" required>
+                                                <option value="None">Select Subject</option>
+                                                <option value="Mathematics-I">Data Base Management Systems</option>
+                                                <option value="Physics">Python</option>
+                                                <option value="Programming in C">Programming in Java</option>
+                                                <option value="Chemistry">Operating System</option>
+                                                <option value="English">Software Engineering</option>
+                                                <option value="Engineering Graphics">Cyber Security</option>
+                                                <option value="Environmental Science">Big Data Analysis</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-bold"><i class="fas fa-clipboard-list me-1 text-success"></i>Session Type</label>
+                                            <select id="sessionType" class="form-select form-select-lg shadow-sm" required>
+                                                <option value="lecture">Lecture</option>
+                                                <option value="lab">Lab</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-bold"><i class="fas fa-clock me-1 text-warning"></i>QR Validity</label>
+                                            <select id="qrDuration" class="form-select form-select-lg shadow-sm">
+                                                <option value="5">5 minutes</option>
+                                                <option value="10" selected>10 minutes</option>
+                                                <option value="15">15 minutes</option>
+                                                <option value="30">30 minutes</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-bold"><i class="fas fa-play-circle me-1 text-info"></i>Action</label>
+                                            <button type="button" class="btn btn-lg btn-primary w-100 shadow" id="startSessionBtn" onclick="startSession();" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                                                <i class="fas fa-play me-2"></i>Start Session
+                                            </button>
+                                            <button type="button" class="btn btn-lg btn-success w-100 shadow d-none" id="generateQRBtn" onclick="generateQRCode();">
+                                                <i class="fas fa-qrcode me-2"></i>Generate QR Code
+                                            </button>
+                                            <button type="button" class="btn btn-lg btn-danger w-100 shadow d-none" id="endSessionBtnMain" onclick="endSession();" style="background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%); border: none; font-weight: 600;">
+                                                <i class="fas fa-stop-circle me-2"></i>END SESSION
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- QR Code Display -->
+                    <div id="qrCodeSection" class="mb-4 d-none">
+                        <div class="card border-0 shadow-lg">
+                            <div class="card-header text-white" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0"><i class="fas fa-qrcode me-2"></i>Attendance QR Code - Active Session</h5>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span id="qrTimer" class="badge bg-light text-dark me-2 px-3 py-2" style="font-size: 1.1rem; font-weight: bold;">10:00</span>
+                                        <button class="btn btn-danger btn-lg shadow-sm" id="endSessionBtn" onclick="endSession()" style="min-width: 150px;">
+                                            <i class="fas fa-stop-circle me-2"></i>End Session
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body p-4" style="background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);">
+                                <div class="row">
+                                    <div class="col-md-6 text-center">
+                                        <div class="p-4 bg-white rounded shadow-sm mb-3" style="border: 3px dashed #38ef7d;">
+                                            <div id="qrCodeDisplay" class="mb-3">
+                                                <!-- QR Code will be displayed here -->
+                                            </div>
+                                        </div>
+                                        <div class="alert alert-warning shadow-sm">
+                                            <i class="fas fa-shield-alt me-2"></i>
+                                            <strong>Security Notice:</strong> This QR code expires automatically and includes anti-fraud measures.
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card border-0 shadow-sm h-100">
+                                            <div class="card-header bg-dark text-white">
+                                                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Session Details</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="session-info-item mb-3 p-3 bg-light rounded">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-book fa-2x text-primary me-3"></i>
+                                                        <div>
+                                                            <small class="text-muted d-block">Subject</small>
+                                                            <strong id="currentSubject" class="fs-5">-</strong>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="session-info-item mb-3 p-3 bg-light rounded">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-clipboard-list fa-2x text-success me-3"></i>
+                                                        <div>
+                                                            <small class="text-muted d-block">Type</small>
+                                                            <strong id="currentSessionType" class="fs-5">-</strong>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="session-info-item mb-3 p-3 bg-light rounded">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-play-circle fa-2x text-info me-3"></i>
+                                                        <div>
+                                                            <small class="text-muted d-block">Started</small>
+                                                            <strong id="sessionStartTime" class="fs-6">-</strong>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="session-info-item p-3 bg-light rounded">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-hourglass-end fa-2x text-warning me-3"></i>
+                                                        <div>
+                                                            <small class="text-muted d-block">Expires</small>
+                                                            <strong id="sessionExpireTime" class="fs-6">-</strong>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Session Statistics (Hidden initially) -->
+                    <div id="sessionStats" class="row mb-4 d-none">
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                <div class="card-body text-white text-center p-4">
+                                    <i class="fas fa-users fa-3x mb-3 opacity-75"></i>
+                                    <h2 class="mb-1 fw-bold" id="totalStudents">0</h2>
+                                    <p class="mb-0 text-white-50">Total Students</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                                <div class="card-body text-white text-center p-4">
+                                    <i class="fas fa-user-check fa-3x mb-3 opacity-75"></i>
+                                    <h2 class="mb-1 fw-bold" id="presentCount">0</h2>
+                                    <p class="mb-0 text-white-50">Present</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);">
+                                <div class="card-body text-white text-center p-4">
+                                    <i class="fas fa-user-times fa-3x mb-3 opacity-75"></i>
+                                    <h2 class="mb-1 fw-bold" id="absentCount">0</h2>
+                                    <p class="mb-0 text-white-50">Absent</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                                <div class="card-body text-white text-center p-4">
+                                    <i class="fas fa-chart-pie fa-3x mb-3 opacity-75"></i>
+                                    <h2 class="mb-1 fw-bold" id="attendancePercentage">0%</h2>
+                                    <p class="mb-0 text-white-50">Attendance Rate</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Real-time Attendance Display -->
+                    <div id="attendanceDisplay" class="d-none">
+                        <!-- Statistics Cards -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body text-center">
+                                        <h3 class="mb-0" id="totalPresent">0</h3>
+                                        <small>Students Present</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body text-center">
+                                        <h3 class="mb-0" id="qrScanned">0</h3>
+                                        <small>QR Scanned</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-primary text-white">
+                                    <div class="card-body text-center">
+                                        <h3 class="mb-0" id="attendanceRate">0%</h3>
+                                        <small>Attendance Rate</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-warning text-white">
+                                    <div class="card-body text-center">
+                                        <h3 class="mb-0" id="sessionDuration">00:00</h3>
+                                        <small>Session Duration</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Students List -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0"><i class="fas fa-users me-2"></i>Students Present</h5>
+                                    <div>
+                                        <label class="me-2">Sort by:</label>
+                                        <select id="sortOption" class="form-select form-select-sm d-inline-block w-auto" onchange="sortStudentsList()">
+                                            <option value="time_asc">Time (Newest First)</option>
+                                            <option value="time_desc">Time (Oldest First)</option>
+                                            <option value="name_asc">Name (A-Z)</option>
+                                            <option value="name_desc">Name (Z-A)</option>
+                                            <option value="enrollment_asc">Enrollment (Ascending)</option>
+                                            <option value="enrollment_desc">Enrollment (Descending)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                                <div id="studentsList">
+                                    <div class="text-center text-muted p-4">
+                                        <i class="fas fa-clock fa-2x mb-2"></i>
+                                        <p>Waiting for students to scan QR code...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Methods -->
+                    <div id="attendanceMethods" class="d-none">
+                        <div class="row">
+                            <!-- Face Recognition -->
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-info">
+                                    <div class="card-header bg-info text-white">
+                                        <h5 class="mb-0"><i class="fas fa-camera me-2"></i>Face Recognition</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="faceRecognitionArea">
+                                            <div class="text-center">
+                                                <button id="startFaceBtn" class="btn btn-info"
+                                                    onclick="startFaceRecognition()">
+                                                    Start Camera
+                                                </button>
+                                            </div>
+                                            <div id="cameraContainer" style="display: none;">
+                                                <video id="video" width="100%" height="300" autoplay
+                                                    class="mt-3"></video>
+                                                <div class="mt-2">
+                                                    <button class="btn btn-success btn-sm" onclick="recognizeFace()">
+                                                        <i class="fas fa-search me-1"></i>Recognize
+                                                    </button>
+                                                    <button class="btn btn-secondary btn-sm"
+                                                        onclick="stopFaceRecognition()">
+                                                        <i class="fas fa-stop me-1"></i>Stop
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- RFID -->
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-success">
+                                    <div class="card-header bg-success text-white">
+                                        <h5 class="mb-0"><i class="fas fa-id-card me-2"></i>RFID Scanner</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="rfidArea">
+                                            <div class="text-center">
+                                                <button id="startRfidBtn" class="btn btn-success"
+                                                    onclick="startRFIDScanning()">
+                                                    Start Scanning
+                                                </button>
+                                            </div>
+                                            <div id="rfidScanner" style="display: none;">
+                                                <div class="text-center mt-3">
+                                                    <div class="spinner-border text-success" role="status">
+                                                        <span class="visually-hidden">Scanning...</span>
+                                                    </div>
+                                                    <p class="mt-2">Waiting for RFID card...</p>
+                                                    <button class="btn btn-secondary btn-sm"
+                                                        onclick="stopRFIDScanning()">
+                                                        Stop Scanning
+                                                    </button>
+                                                </div>
+                                                <!-- Testing input -->
+                                                <div class="mt-3">
+                                                    <input type="text" id="testRfidInput" class="form-control"
+                                                        placeholder="Test RFID UID">
+                                                    <button class="btn btn-success btn-sm mt-2" onclick="testRFID()">
+                                                        Test RFID
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Attendance List -->
+                    <div id="attendanceList" class="mt-4 d-none">
+                        <h5><i class="fas fa-list me-2"></i>Today's Attendance</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Student Name</th>
+                                        <th>Enrollment No</th>
+                                        <th>Method</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendanceTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Status Messages -->
+                    <div id="statusMessage" class="alert" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* -------------------------
+       Global state (single definitions)
+       Removed duplicates and redeclarations.
+    ------------------------- */
+    let stream = null;
+    let isScanning = false;
+    let currentSession = null;
+    let sessionStartTime = null;
+    let timerInterval = null;
+    let socket = null;
+
+    /* -------------------------
+       SocketIO Setup for Real-time Updates
+    ------------------------- */
+    function initializeSocket() {
+        socket = io();
+        
+        socket.on('connect', function() {
+            console.log('Connected to server');
+            if (currentSession && currentSession.id) {
+                socket.emit('join_session', {session_id: currentSession.id});
+            }
+        });
+        
+        socket.on('disconnect', function() {
+            console.log('Disconnected from server');
+        });
+        
+        socket.on('attendance_marked', function(data) {
+            console.log('Attendance marked:', data);
+            showStatus(`✅ ${data.student_name} (${data.enrollment_no}) marked attendance via ${data.method}`, 'success');
+            
+            // Update QR scanned count if it was QR attendance
+            if (data.method === 'QR' && data.qr_session_id === qrSession?.id) {
+                const qrScannedElement = document.getElementById('qrScanned');
+                if (qrScannedElement) {
+                    const currentCount = parseInt(qrScannedElement.textContent) || 0;
+                    qrScannedElement.textContent = currentCount + 1;
+                }
+            }
+            
+            // Trigger immediate stats and table update
+            triggerImmediateUpdate();
+        });
+        
+        socket.on('session_ended', function(data) {
+            console.log('Session ended:', data);
+            showStatus('Session has been ended', 'info');
+            endSession();
+        });
+    }
+
+    /* -------------------------
+       Simple test function to verify JavaScript execution
+    ------------------------- */
+    /* -------------------------
+       Timer update
+    ------------------------- */
+    function updateTimer() {
+        if (!sessionStartTime) return;
+
+        const timerElement = document.getElementById('sessionTimer');
+        if (!timerElement) {
+            console.warn('sessionTimer element not found');
+            return;
+        }
+
+        const now = new Date();
+        const diff = now - sessionStartTime;
+        const hours = Math.floor(diff / 3600000);
+        const minutes = Math.floor((diff % 3600000) / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+
+        timerElement.textContent =
+            `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    /* -------------------------
+       Start session
+       - Clean async/await flow with proper error handling
+    ------------------------- */
+    async function startSession() {
+        try {
+            // Prevent any form submission
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            console.log('startSession called'); // Debug log
+            
+            const subject = document.getElementById('subject').value;
+            const sessionType = document.getElementById('sessionType').value;
+
+            console.log('Subject:', subject, 'Session Type:', sessionType); // Debug log
+
+            if (!subject) {
+                showStatus('Please select a subject', 'warning');
+                return false;
+            }
+
+            // Create the request data object
+            const requestData = {
+                subject: subject,
+                session_type: sessionType
+            };
+
+            console.log('Sending request with data:', requestData); // Debug log
+
+            // Start attendance session
+            const response = await fetch('/start_attendance_session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'include',
+                body: JSON.stringify(requestData)
+            });
+
+            console.log('Response received:', response.status); // Debug log
+
+            let result;
+            try {
+                result = await response.json();
+                console.log('Parsed JSON result:', result); // Debug log
+            } catch (e) {
+                console.error('Error parsing JSON response:', e);
+                showStatus('Error parsing server response', 'danger');
+                return false;
+            }
+
+            if (!response.ok) {
+                const errorMessage = result.message || `HTTP error! status: ${response.status}`;
+                console.error('Server error:', errorMessage);
+                showStatus(errorMessage, 'danger');
+                return false;
+            }
+            
+            if (result.success) {
+                console.log('Session created successfully:', result); // Debug log
+                
+                currentSession = {
+                    id: result.session_id,
+                    subject: subject,
+                    sessionType: sessionType
+                };
+
+                // Update UI with error checking
+                const sessionSubjectElement = document.getElementById('currentSubject');
+                const sessionTypeElement = document.getElementById('currentSessionType');
+                const sessionStartTimeElement = document.getElementById('sessionStartTime');
+                
+                if (sessionSubjectElement) {
+                    sessionSubjectElement.textContent = subject;
+                } else {
+                    console.error('currentSubject element not found');
+                }
+                
+                if (sessionTypeElement) {
+                    sessionTypeElement.textContent = sessionType;
+                } else {
+                    console.error('currentSessionType element not found');
+                }
+                
+                if (sessionStartTimeElement) {
+                    sessionStartTimeElement.textContent = new Date().toLocaleTimeString();
+                } else {
+                    console.error('sessionStartTime element not found');
+                }
+
+                // Show session elements with Bootstrap classes
+                console.log('Starting to show session elements...');
+                
+                // Hide session setup
+                const sessionSetup = document.getElementById('sessionSetup');
+                if (sessionSetup) {
+                    sessionSetup.classList.add('d-none');
+                    console.log('Hidden sessionSetup');
+                }
+                
+                // Show session elements
+                const elementsToShow = ['sessionInfo', 'sessionStats', 'attendanceMethods', 'attendanceList'];
+                elementsToShow.forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.classList.remove('d-none');
+                        console.log(`Showed element ${id}`);
+                    } else {
+                        console.error(`Element ${id} not found`);
+                    }
+                });
+                
+                // Show end session button and hide start button
+                const endSessionBtn = document.getElementById('endSessionBtn');
+                const endSessionBtnMain = document.getElementById('endSessionBtnMain');
+                const startSessionBtn = document.getElementById('startSessionBtn');
+                const generateQRBtn = document.getElementById('generateQRBtn');
+                
+                if (endSessionBtn) {
+                    endSessionBtn.classList.remove('d-none');
+                    console.log('Showed end session button');
+                }
+                
+                if (endSessionBtnMain) {
+                    endSessionBtnMain.classList.remove('d-none');
+                    console.log('Showed main end session button');
+                }
+                
+                if (startSessionBtn) {
+                    startSessionBtn.classList.add('d-none');
+                    console.log('Hidden start session button');
+                }
+                
+                if (generateQRBtn) {
+                    generateQRBtn.classList.remove('d-none');
+                    console.log('Showed QR generation button');
+                }
+                
+                console.log('Finished updating display properties');
+
+                // Start timer
+                sessionStartTime = new Date();
+                timerInterval = setInterval(updateTimer, 1000);
+
+                // Initialize SocketIO connection
+                if (!socket) {
+                    initializeSocket();
+                } else if (socket.connected) {
+                    socket.emit('join_session', {session_id: currentSession.id});
+                }
+
+                // Start real-time updates
+                startRealtimeUpdates();
+
+                showStatus('Attendance session started successfully!', 'success');
+                return true;
+            } else {
+                showStatus(result.message || 'Failed to start session', 'danger');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error in startSession:', error);
+            alert('Error in startSession: ' + error.message);
+            showStatus('Error starting session. Please try again.', 'danger');
+            return false;
+        }
+    }
+
+    /* -------------------------
+       Placeholder: startRealtimeUpdates
+       Implement real-time polling to fetch attendance stats and records
+    ------------------------- */
+    function startRealtimeUpdates() {
+        if (!currentSession || !currentSession.id) {
+            console.warn('No session ID available for real-time updates');
+            return;
+        }
+
+        // Start polling every 3 seconds for real-time updates
+        const realtimeInterval = setInterval(async () => {
+            if (!currentSession) {
+                clearInterval(realtimeInterval);
+                return;
+            }
+
+            try {
+                // Fetch session statistics
+                const statsResponse = await fetch(`/get_session_stats/${currentSession.id}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'include'
+                });
+
+                if (statsResponse.ok) {
+                    const statsResult = await statsResponse.json();
+                    if (statsResult.success) {
+                        updateSessionStats(statsResult.stats);
+                    }
+                }
+
+                // Fetch attendance records and update the table
+                const attendanceResponse = await fetch(`/get_session_attendance/${currentSession.id}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'include'
+                });
+
+                if (attendanceResponse.ok) {
+                    const attendanceResult = await attendanceResponse.json();
+                    if (attendanceResult.success) {
+                        updateAttendanceTable(attendanceResult.attendance_records);
+                    }
+                }
+
+            } catch (error) {
+                console.error('Error in real-time updates:', error);
+            }
+        }, 3000); // Update every 3 seconds
+
+        // Store interval reference to clean up later
+        currentSession.realtimeInterval = realtimeInterval;
+    }
+
+    /* -------------------------
+       Update session statistics display
+    ------------------------- */
+    function updateSessionStats(stats) {
+        document.getElementById('totalStudents').textContent = stats.total_students || 0;
+        document.getElementById('presentCount').textContent = stats.present_count || 0;
+        document.getElementById('absentCount').textContent = stats.absent_count || 0;
+        document.getElementById('attendancePercentage').textContent = (stats.attendance_percentage || 0) + '%';
+    }
+
+    /* -------------------------
+       Update attendance table with records in ascending order by enrollment number
+    ------------------------- */
+    function updateAttendanceTable(records) {
+        const tbody = document.getElementById('attendanceTableBody');
+        tbody.innerHTML = ''; // Clear existing rows
+
+        // Records are already sorted by enrollment number in ascending order from backend
+        records.forEach(record => {
+            const row = tbody.insertRow();
+            const statusClass = record.status === 'Present' ? 'text-success' : 'text-danger';
+            
+            row.innerHTML = `
+                <td>${escapeHtml(record.attendance_time || 'N/A')}</td>
+                <td>${escapeHtml(record.student_name)}</td>
+                <td>${escapeHtml(record.enrollment_no)}</td>
+                <td><span class="badge bg-info">${escapeHtml(record.method)}</span></td>
+                <td><span class="${statusClass}"><i class="fas fa-check-circle"></i> ${escapeHtml(record.status)}</span></td>
+            `;
+        });
+    }
+
+    /* -------------------------
+       End session with proper cleanup and backend call
+    ------------------------- */
+    async function endSession() {
+        if (!currentSession || !currentSession.id) {
+            showStatus('No active session to end', 'warning');
+            return;
+        }
+
+        // Confirm before ending
+        if (!confirm('Are you sure you want to end this attendance session? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            // Call backend to end the session
+            const response = await fetch(`/end_attendance_session/${currentSession.id}`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'include'
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                showStatus('✅ Attendance session ended successfully! Total present: ' + (result.total_present || 0), 'success');
+                
+                // UI cleanup
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+                
+                // Clean up real-time updates
+                if (currentSession && currentSession.realtimeInterval) {
+                    clearInterval(currentSession.realtimeInterval);
+                }
+
+                sessionStartTime = null;
+                currentSession = null;
+
+                // Stop face recognition if active
+                stopFaceRecognition();
+                stopRFIDScanning();
+
+                // Reset UI - Show session setup, hide everything else
+                const sessionSetup = document.getElementById('sessionSetup');
+                if (sessionSetup) sessionSetup.classList.remove('d-none');
+                
+                const qrCodeSection = document.getElementById('qrCodeSection');
+                if (qrCodeSection) qrCodeSection.classList.add('d-none');
+                
+                const sessionStats = document.getElementById('sessionStats');
+                if (sessionStats) sessionStats.classList.add('d-none');
+                
+                const attendanceMethods = document.getElementById('attendanceMethods');
+                if (attendanceMethods) attendanceMethods.classList.add('d-none');
+                
+                const attendanceDisplay = document.getElementById('attendanceDisplay');
+                if (attendanceDisplay) attendanceDisplay.classList.add('d-none');
+                
+                // Reset buttons
+                const startBtn = document.getElementById('startSessionBtn');
+                if (startBtn) startBtn.classList.remove('d-none');
+                
+                const generateQRBtn = document.getElementById('generateQRBtn');
+                if (generateQRBtn) generateQRBtn.classList.add('d-none');
+                
+                const endSessionBtnMain = document.getElementById('endSessionBtnMain');
+                if (endSessionBtnMain) endSessionBtnMain.classList.add('d-none');
+                
+                const endSessionBtn = document.getElementById('endSessionBtn');
+                if (endSessionBtn) endSessionBtn.classList.add('d-none');
+                
+                // Clear QR code
+                const qrCodeDisplay = document.getElementById('qrCodeDisplay');
+                if (qrCodeDisplay) qrCodeDisplay.innerHTML = '';
+                
+                // Clear student list
+                const studentsList = document.getElementById('studentsList');
+                if (studentsList) {
+                    studentsList.innerHTML = `
+                        <div class="text-center text-muted p-4">
+                            <i class="fas fa-clock fa-2x mb-2"></i>
+                            <p>Waiting for students to scan QR code...</p>
+                        </div>
+                    `;
+                }
+                
+                // Reset form
+                document.getElementById('subject').value = 'None';
+                document.getElementById('sessionType').value = 'lecture';
+                document.getElementById('qrDuration').value = '10';
+                
+            } else {
+                showStatus('❌ Error ending session: ' + (result.message || 'Unknown error'), 'danger');
+            }
+
+        } catch (error) {
+            console.error('Error ending session:', error);
+            showStatus('❌ Error ending session. Please try again.', 'danger');
+        }
+    }
+
+    /* -------------------------
+       Face recognition functions
+    ------------------------- */
+    async function startFaceRecognition() {
+        try {
+            const video = document.getElementById('video');
+            stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+
+            document.getElementById('cameraContainer').style.display = 'block';
+            document.getElementById('startFaceBtn').style.display = 'none';
+
+            showStatus('Camera started. Students can now look at the camera for recognition.', 'info');
+        } catch (error) {
+            showStatus('Error accessing camera: ' + (error.message || error), 'danger');
+        }
+    }
+
+    function stopFaceRecognition() {
+        if (stream) {
+            try {
+                stream.getTracks().forEach(track => track.stop());
+            } catch (e) {
+                console.warn('Error stopping stream tracks', e);
+            }
+            stream = null;
+        }
+        document.getElementById('cameraContainer').style.display = 'none';
+        document.getElementById('startFaceBtn').style.display = 'inline-block';
+    }
+
+    async function recognizeFace() {
+        if (!currentSession) {
+            showStatus('Please start a session first', 'warning');
+            return;
+        }
+
+        // Check if camera is active
+        const cameraContainer = document.getElementById('cameraContainer');
+        if (cameraContainer.style.display === 'none') {
+            showStatus('Please start the camera first by clicking "Start Camera"', 'warning');
+            return;
+        }
+
+        // Confirm recognition attempt
+        if (!confirm('Are you sure you want to attempt face recognition for attendance marking?')) {
+            return;
+        }
+
+        // Disable the recognize button to prevent multiple clicks
+        const recognizeBtn = event.target;
+        recognizeBtn.disabled = true;
+        recognizeBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+
+        try {
+            console.log('Starting face recognition process...');
+            showStatus('Processing face recognition... Please look at the camera.', 'info');
+            
+            const response = await fetch('/process_attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    method: 'face',
+                    subject: currentSession.subject,
+                    session_type: currentSession.sessionType
+                })
+            });
+
+            const result = await response.json();
+            console.log('Face recognition result:', result);
+
+            if (result.success) {
+                showStatus(`✅ Attendance marked successfully for ${result.student_name} (${result.enrollment_no})`, 'success');
+                
+                // Trigger immediate update of statistics and attendance table
+                await triggerImmediateUpdate();
+                
+            } else {
+                showStatus('❌ Recognition failed: ' + (result.message || 'Unknown error'), 'danger');
+            }
+        } catch (error) {
+            console.error('Error in recognizeFace:', error);
+            showStatus('❌ Error in face recognition: ' + (error.message || error), 'danger');
+        } finally {
+            // Re-enable the recognize button
+            recognizeBtn.disabled = false;
+            recognizeBtn.innerHTML = '<i class="fas fa-search me-1"></i>Recognize';
+        }
+    }
+
+    /* -------------------------
+       RFID functions
+    ------------------------- */
+    function startRFIDScanning() {
+        document.getElementById('rfidScanner').style.display = 'block';
+        document.getElementById('startRfidBtn').style.display = 'none';
+        isScanning = true;
+        showStatus('RFID scanning started. Students can tap their cards.', 'info');
+    }
+
+    function stopRFIDScanning() {
+        document.getElementById('rfidScanner').style.display = 'none';
+        document.getElementById('startRfidBtn').style.display = 'inline-block';
+        isScanning = false;
+    }
+
+    async function testRFID() {
+        const rfidUID = document.getElementById('testRfidInput').value.trim();
+        if (!rfidUID) {
+            showStatus('Please enter an RFID UID for testing', 'warning');
+            return;
+        }
+
+        if (!currentSession) {
+            showStatus('Please start a session first', 'warning');
+            return;
+        }
+
+        try {
+            const response = await fetch('/process_attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    method: 'rfid',
+                    rfid_uid: rfidUID,
+                    subject: currentSession.subject,
+                    session_type: currentSession.sessionType
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showStatus(`Attendance marked for ${result.student_name} (${result.enrollment_no})`, 'success');
+                document.getElementById('testRfidInput').value = '';
+                
+                // Trigger immediate update of statistics and attendance table
+                await triggerImmediateUpdate();
+                
+            } else {
+                showStatus('RFID verification failed: ' + (result.message || 'Unknown error'), 'danger');
+            }
+        } catch (error) {
+            console.error('Error in testRFID:', error);
+            showStatus('Error in RFID verification: ' + (error.message || error), 'danger');
+        }
+    }
+
+    /* -------------------------
+       Trigger immediate update of session data
+    ------------------------- */
+    async function triggerImmediateUpdate() {
+        if (!currentSession || !currentSession.id) return;
+
+        try {
+            // Fetch updated statistics
+            const statsResponse = await fetch(`/get_session_stats/${currentSession.id}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'include'
+            });
+
+            if (statsResponse.ok) {
+                const statsResult = await statsResponse.json();
+                if (statsResult.success) {
+                    updateSessionStats(statsResult.stats);
+                }
+            }
+
+            // Fetch updated attendance records
+            const attendanceResponse = await fetch(`/get_session_attendance/${currentSession.id}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'include'
+            });
+
+            if (attendanceResponse.ok) {
+                const attendanceResult = await attendanceResponse.json();
+                if (attendanceResult.success) {
+                    updateAttendanceTable(attendanceResult.attendance_records);
+                }
+            }
+        } catch (error) {
+            console.error('Error in immediate update:', error);
+        }
+    }
+
+    /* -------------------------
+       QR Code Generation and Management
+    ------------------------- */
+    let qrSession = null;
+    let qrTimer = null;
+    let qrCountdown = null;
+
+    async function generateQRCode() {
+        if (!currentSession) {
+            showStatus('Please start a session first', 'warning');
+            return;
+        }
+
+        try {
+            const qrDuration = parseInt(document.getElementById('qrDuration').value) || 10;
+            
+            // Disable generate button during generation
+            const generateBtn = document.getElementById('generateQRBtn');
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Generating...';
+
+            const response = await fetch('/generate_attendance_qr', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    session_id: currentSession.id,
+                    duration_minutes: qrDuration
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Store QR session info
+                qrSession = {
+                    id: result.qr_session_id,
+                    expiresAt: new Date(Date.now() + (qrDuration * 60 * 1000))
+                };
+
+                // Display QR code
+                document.getElementById('qrCodeDisplay').innerHTML = `<img src="data:image/png;base64,${result.qr_image}" alt="Attendance QR Code" class="img-fluid">`;
+                
+                // Show QR section
+                document.getElementById('qrCodeSection').classList.remove('d-none');
+                
+                // Start countdown timer
+                startQRTimer(qrDuration * 60);
+                
+                showStatus('QR Code generated successfully! Students can now scan to mark attendance.', 'success');
+                
+                // Change button to regenerate
+                generateBtn.innerHTML = '<i class="fas fa-redo me-1"></i>Regenerate QR';
+                generateBtn.disabled = false;
+                
+            } else {
+                showStatus('Failed to generate QR code: ' + (result.message || 'Unknown error'), 'danger');
+                generateBtn.innerHTML = '<i class="fas fa-qrcode me-1"></i>Generate QR Code';
+                generateBtn.disabled = false;
+            }
+
+        } catch (error) {
+            console.error('Error generating QR code:', error);
+            showStatus('Error generating QR code: ' + (error.message || error), 'danger');
+            
+            const generateBtn = document.getElementById('generateQRBtn');
+            generateBtn.innerHTML = '<i class="fas fa-qrcode me-1"></i>Generate QR Code';
+            generateBtn.disabled = false;
+        }
+    }
+
+    function startQRTimer(seconds) {
+        // Clear any existing timer
+        if (qrCountdown) {
+            clearInterval(qrCountdown);
+        }
+
+        const timerElement = document.getElementById('qrTimer');
+        let remaining = seconds;
+
+        // Update timer immediately
+        updateQRTimerDisplay(remaining);
+
+        qrCountdown = setInterval(() => {
+            remaining--;
+            updateQRTimerDisplay(remaining);
+
+            if (remaining <= 0) {
+                clearInterval(qrCountdown);
+                expireQRCode();
+            }
+        }, 1000);
+    }
+
+    function updateQRTimerDisplay(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        const timerElement = document.getElementById('qrTimer');
+        
+        if (!timerElement) {
+            console.error('qrTimer element not found!');
+            return;
+        }
+        
+        timerElement.textContent = `${minutes}:${secs.toString().padStart(2, '0')}`;
+        
+        // Change color based on time remaining
+        if (seconds <= 60) {
+            timerElement.className = 'badge bg-danger text-white me-2';
+        } else if (seconds <= 180) {
+            timerElement.className = 'badge bg-warning text-dark me-2';
+        } else {
+            timerElement.className = 'badge bg-light text-dark me-2';
+        }
+    }
+
+    function expireQRCode() {
+        // Hide QR section
+        document.getElementById('qrCodeSection').classList.add('d-none');
+        
+        // Reset generate button
+        const generateBtn = document.getElementById('generateQRBtn');
+        generateBtn.innerHTML = '<i class="fas fa-qrcode me-1"></i>Generate QR Code';
+        generateBtn.disabled = false;
+        
+        // Clear QR session
+        qrSession = null;
+        
+        showStatus('QR Code has expired. Generate a new one if needed.', 'warning');
+    }
+
+    /* -------------------------
+       Utility functions
+    ------------------------- */
+    function showStatus(message, type) {
+        const statusElement = document.getElementById('statusMessage');
+        
+        // Check if element exists
+        if (!statusElement) {
+            console.error('statusMessage element not found!');
+            console.log('Message:', message, 'Type:', type);
+            // Fallback to alert
+            alert(message);
+            return;
+        }
+        
+        // type should be 'success', 'danger', 'warning', 'info'
+        statusElement.className = `alert alert-${type}`;
+        statusElement.textContent = message;
+        statusElement.style.display = 'block';
+
+        setTimeout(() => {
+            statusElement.style.display = 'none';
+        }, 5000);
+    }
+
+    // Basic HTML escape to avoid injection when inserting names/enrollment in innerHTML
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    // Cleanup when leaving page
+    window.addEventListener('beforeunload', () => {
+        if (currentSession && currentSession.realtimeInterval) {
+        clearInterval(currentSession.realtimeInterval);
+    }
+    if (timerInterval) {
+        clearInterval(timerInterval);
+    }
+    stopFaceRecognition();
+    // if you have realtime polling cleanup here as well
+});
+
+    /* -------------------------
+       DOM Ready Check
+    ------------------------- */
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize any required setup when page loads
+        console.log('Take Attendance page loaded');
+        
+        // Initialize SocketIO connection
+        initializeSocket();
+    });
+</script>
+{% endblock %}

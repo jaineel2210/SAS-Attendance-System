@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Home - SecureAttend Pro{% endblock %}
+
+{% block content %}
+<div class="hero-section py-5 mb-5" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 16px;">
+    <div class="container text-center">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold mb-4">SecureAttend Pro</h1>
+                <p class="lead mb-4">Advanced Biometric & RFID Attendance Management System</p>
+                <p class="mb-4">Secure, accurate, and efficient attendance tracking with face recognition and RFID technology.</p>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <a href="{{ url_for('register') }}" class="btn btn-light btn-lg me-md-2">
+                        <i class="fas fa-user-plus me-2"></i>Register Now
+                    </a>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <img src="https://images.pexels.com/photos/5668858/pexels-photo-5668858.jpeg?auto=compress&cs=tinysrgb&w=600" 
+                     alt="Biometric Security" class="img-fluid rounded-3 shadow-lg">
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Features Section -->
+    <div class="row mb-5">
+        <div class="col-12 text-center mb-4">
+            <h2 class="fw-bold">Key Features</h2>
+            <p class="text-muted">Advanced technology for modern attendance management</p>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <div class="feature-icon mb-3">
+                        <i class="fas fa-face-smile fa-3x text-primary"></i>
+                    </div>
+                    <h5 class="card-title">Face Recognition</h5>
+                    <p class="card-text">Advanced facial recognition technology for secure and contactless attendance marking.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <div class="feature-icon mb-3">
+                        <i class="fas fa-id-card fa-3x text-success"></i>
+                    </div>
+                    <h5 class="card-title">RFID Integration</h5>
+                    <p class="card-text">Quick and reliable RFID card scanning for fast attendance verification.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <div class="feature-icon mb-3">
+                        <i class="fas fa-shield-alt fa-3x text-warning"></i>
+                    </div>
+                    <h5 class="card-title">OTP Security</h5>
+                    <p class="card-text">Two-factor authentication with OTP verification for enhanced security.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Benefits Section -->
+    <div class="row mb-5">
+        <div class="col-12 text-center mb-4">
+            <h2 class="fw-bold">Why Choose SecureAttend Pro?</h2>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="d-flex align-items-start">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-check-circle fa-2x text-success me-3"></i>
+                </div>
+                <div>
+                    <h5>Anti-Proxy Technology</h5>
+                    <p class="text-muted">Dual authentication prevents proxy attendance and ensures accurate records.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="d-flex align-items-start">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-chart-line fa-2x text-primary me-3"></i>
+                </div>
+                <div>
+                    <h5>Real-time Analytics</h5>
+                    <p class="text-muted">Comprehensive attendance analytics with visual charts and reports.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="d-flex align-items-start">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-users-cog fa-2x text-info me-3"></i>
+                </div>
+                <div>
+                    <h5>Role-based Access</h5>
+                    <p class="text-muted">Secure access control for administrators, faculty, and students.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="d-flex align-items-start">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-mobile-alt fa-2x text-warning me-3"></i>
+                </div>
+                <div>
+                    <h5>Mobile Responsive</h5>
+                    <p class="text-muted">Access the system from any device with our responsive design.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Types Section -->
+    <div class="row mb-5">
+        <div class="col-12 text-center mb-4">
+            <h2 class="fw-bold">User Roles</h2>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white text-center">
+                    <i class="fas fa-user-shield fa-2x mb-2"></i>
+                    <h5>Administrator</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check text-success me-2"></i>Full system access</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Student management</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Faculty management</li>
+                        <li><i class="fas fa-check text-success me-2"></i>System analytics</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Security settings</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white text-center">
+                    <i class="fas fa-chalkboard-teacher fa-2x mb-2"></i>
+                    <h5>Faculty</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check text-success me-2"></i>Take attendance</li>
+                        <li><i class="fas fa-check text-success me-2"></i>View class statistics</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Portable device access</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Session management</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Attendance reports</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white text-center">
+                    <i class="fas fa-user-graduate fa-2x mb-2"></i>
+                    <h5>Student</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check text-success me-2"></i>Mark attendance</li>
+                        <li><i class="fas fa-check text-success me-2"></i>View attendance records</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Attendance analytics</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Subject-wise reports</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Percentage tracking</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Getting Started Section -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body text-center py-5">
+                    <h3 class="fw-bold mb-3">Ready to Get Started?</h3>
+                    <p class="lead mb-4">Join thousands of institutions using SecureAttend Pro for accurate attendance management.</p>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg me-md-2">
+                            <i class="fas fa-rocket me-2"></i>Start Registration
+                        </a>
+                        <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}Student Analytics - SecureAttend Pro{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Your Attendance Analytics</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <h5>Total Sessions</h5>
+                                    <h2>{{ weekly_data|length or 0 }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h5>Attended</h5>
+                                    <h2>{{ attended_count or 0 }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body text-center">
+                                    <h5>Overall %</h5>
+                                    <h2>{{ overall_percentage or 0 }}%</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h5>Subjects</h5>
+                                    <h2>{{ subject_data|length or 0 }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row">
+        <!-- Weekly Attendance Chart -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Weekly Attendance Trend</h5>
+                </div>
+                <div class="card-body">
+                    {% if weekly_chart %}
+                    <img src="data:image/png;base64,{{ weekly_chart }}" class="img-fluid" alt="Weekly Chart">
+                    {% else %}
+                    <div class="text-center text-muted">
+                        <i class="fas fa-chart-line fa-3x mb-3"></i>
+                        <p>No weekly data available</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Attendance Chart -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Monthly Attendance Distribution</h5>
+                </div>
+                <div class="card-body">
+                    {% if monthly_chart %}
+                    <img src="data:image/png;base64,{{ monthly_chart }}" class="img-fluid" alt="Monthly Chart">
+                    {% else %}
+                    <div class="text-center text-muted">
+                        <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                        <p>No monthly data available</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subject-wise Analysis -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Subject-wise Attendance</h5>
+                </div>
+                <div class="card-body">
+                    {% if subject_data %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Total Sessions</th>
+                                    <th>Attended</th>
+                                    <th>Percentage</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for subject in subject_data %}
+                                <tr>
+                                    <td>{{ subject.subject }}</td>
+                                    <td>{{ subject.total_sessions }}</td>
+                                    <td>{{ subject.attended_sessions }}</td>
+                                    <td>
+                                        <span
+                                            class="badge {% if subject.percentage >= 80 %}bg-success{% elif subject.percentage >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
+                                            {{ subject.percentage }}%
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if subject.percentage >= 80 %}
+                                        <i class="fas fa-check-circle text-success"></i> Good
+                                        {% elif subject.percentage >= 60 %}
+                                        <i class="fas fa-exclamation-triangle text-warning"></i> Average
+                                        {% else %}
+                                        <i class="fas fa-times-circle text-danger"></i> Poor
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted">
+                        <i class="fas fa-table fa-3x mb-3"></i>
+                        <p>No subject data available</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Subject Distribution</h5>
+                </div>
+                <div class="card-body">
+                    {% if subject_chart %}
+                    <img src="data:image/png;base64,{{ subject_chart }}" class="img-fluid" alt="Subject Chart">
+                    {% else %}
+                    <div class="text-center text-muted">
+                        <i class="fas fa-chart-pie fa-3x mb-3"></i>
+                        <p>No data for chart</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Attendance -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Attendance Records</h5>
+                </div>
+                <div class="card-body">
+                    {% if weekly_data %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Subject</th>
+                                    <th>Session Type</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                    <th>Method</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in weekly_data[:10] %}
+                                <tr>
+                                    <td>{{ record.attendance_date }}</td>
+                                    <td>{{ record.subject }}</td>
+                                    <td><span class="badge bg-secondary">{{ record.session_type }}</span></td>
+                                    <td>{{ record.attendance_time }}</td>
+                                    <td>
+                                        {% if record.status == 'P' %}
+                                        <span class="badge bg-success">Present</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Absent</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if record.marked_by_face %}
+                                        <i class="fas fa-camera text-info" title="Face Recognition"></i>
+                                        {% elif record.marked_by_rfid %}
+                                        <i class="fas fa-id-card text-success" title="RFID Card"></i>
+                                        {% else %}
+                                        <i class="fas fa-hand-paper text-warning" title="Manual"></i>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted">
+                        <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                        <p>No attendance records found</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,356 @@
+{% extends "base.html" %}
+
+{% block title %}Register - SecureAttend Pro{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg">
+                <div class="card-header bg-success text-white text-center py-4">
+                    <h3 class="mb-0">
+                        <i class="fas fa-user-plus me-2"></i>Student Registration
+                    </h3>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Progress Steps -->
+                    <div class="mb-4">
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar"
+                                style="width: {% if step == 1 %}25{% elif step == 2 %}50{% elif step == 3 %}75{% else %}100{% endif %}%">
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-2">
+                            <small class="text-{% if step >= 1 %}success{% else %}muted{% endif %}">Info</small>
+                            <small class="text-{% if step >= 2 %}success{% else %}muted{% endif %}">OTP</small>
+                            <small class="text-{% if step >= 3 %}success{% else %}muted{% endif %}">Face</small>
+                            <small class="text-{% if step >= 4 %}success{% else %}muted{% endif %}">Complete</small>
+                        </div>
+                    </div>
+
+                    {% if step == 1 %}
+                    <!-- Step 1: Basic Information -->
+                    <form method="POST">
+                        <input type="hidden" name="step" value="1">
+
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required
+                                placeholder="Enter your full name">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="enrollment_no" class="form-label">Enrollment Number</label>
+                            <input type="text" class="form-control" id="enrollment_no" name="enrollment_no" required
+                                placeholder="e.g., 2201031000066"
+                                pattern="^(2201031000\d{3}|2301031030\d{3}|22010310300\d{2}|2101031000052)$">
+                            <small class="form-text text-muted">
+                                Enter your valid enrollment number
+                            </small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="mobile_number" class="form-label">Mobile Number</label>
+                            <input type="tel" class="form-control" id="mobile_number" name="mobile_number" required
+                                placeholder="Enter 10-digit mobile number" pattern="[0-9]{10}">
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-arrow-right me-2"></i>Continue to OTP Verification
+                            </button>
+                        </div>
+                    </form>
+
+                    {% elif step == 2 %}
+                    <!-- Step 2: OTP Verification -->
+                    <div class="text-center mb-4">
+                        <i class="fas fa-mobile-alt fa-3x text-primary mb-3"></i>
+                        <h5>OTP Verification</h5>
+                        <p class="text-muted">Enter the 6-digit OTP sent to your mobile number</p>
+                    </div>
+
+                    <form method="POST" id="otpForm">
+                        <input type="hidden" name="step" value="2">
+
+                        <div class="mb-3">
+                            <label for="otp_code" class="form-label">OTP Code</label>
+                            <input type="text" class="form-control text-center" id="otp_code" name="otp_code"
+                                maxlength="6" required placeholder="000000"
+                                style="font-size: 1.5rem; letter-spacing: 0.5rem;">
+                            <small class="form-text text-warning">
+                                <i class="fas fa-clock me-1"></i>OTP expires in 30 seconds
+                            </small>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-check me-2"></i>Verify OTP
+                            </button>
+                            {% if resend_otp %}
+                            <button type="button" class="btn btn-outline-primary" onclick="resendOTP()">
+                                <i class="fas fa-redo me-2"></i>Resend OTP
+                            </button>
+                            {% endif %}
+                        </div>
+                    </form>
+
+                    {% elif step == 3 %}
+                    <!-- Step 3: Face Capture -->
+                    <div class="text-center mb-4">
+                        <i class="fas fa-camera fa-3x text-primary mb-3"></i>
+                        <h5>Face Capture</h5>
+                        <p class="text-muted">Position your face in the camera and click capture</p>
+                    </div>
+
+                    <!-- Enhanced Face Capture Interface -->
+                    <div class="d-flex flex-column align-items-center">
+                        <!-- Video Container with Responsive Design -->
+                        <div class="position-relative mb-4" style="max-width: 100%; width: fit-content;">
+                            <video id="video" class="border border-3 border-primary rounded-3 shadow-lg"
+                                style="width: 100%; max-width: 400px; height: auto; aspect-ratio: 4/3;"
+                                autoplay></video>
+
+                            <!-- Face Detection Overlay -->
+                            <div class="position-absolute top-50 start-50 translate-middle"
+                                style="width: 80%; height: 80%; border: 2px dashed rgba(0,123,255,0.7); border-radius: 50%; pointer-events: none;">
+                                <div class="position-absolute top-50 start-50 translate-middle text-primary opacity-75">
+                                    <i class="fas fa-user-circle fa-3x"></i>
+                                </div>
+                            </div>
+
+                            <!-- Captured Photo Preview -->
+                            <canvas id="canvas" class="border border-3 border-success rounded-3 shadow-lg d-none"
+                                style="width: 100%; max-width: 400px; height: auto; aspect-ratio: 4/3;"></canvas>
+                        </div>
+
+                        <!-- Instructions -->
+                        <div class="alert alert-info text-center mb-4" style="max-width: 400px;">
+                            <small class="d-block">
+                                <i class="fas fa-lightbulb me-1"></i>
+                                <strong>Tips:</strong> Ensure good lighting, look directly at camera, and keep face
+                                centered in the circle
+                            </small>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-grid gap-3" style="width: 100%; max-width: 300px;">
+                            <button type="button" class="btn btn-primary btn-lg shadow-sm" id="captureBtn"
+                                onclick="capturePhoto()">
+                                <i class="fas fa-camera me-2"></i>Capture Face
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-lg d-none" id="retakeBtn"
+                                onclick="retakePhoto()">
+                                <i class="fas fa-redo me-2"></i>Retake Photo
+                            </button>
+                            <button type="button" class="btn btn-success btn-lg shadow-sm d-none" id="confirmBtn"
+                                onclick="confirmCapture()">
+                                <i class="fas fa-check me-2"></i>Confirm & Complete Registration
+                            </button>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="enrollment_no_hidden" value="{{ enrollment_no }}">
+
+                    {% elif step == 4 %}
+                    <!-- Step 4: Registration Complete -->
+                    <div class="text-center">
+                        <i class="fas fa-check-circle fa-4x text-success mb-4"></i>
+                        <h4 class="text-success">Registration Successful!</h4>
+                        <p class="mb-4">Your account has been created successfully. You can now log in and mark
+                            attendance using face recognition and RFID card.</p>
+
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle me-2"></i>Next Steps:</h6>
+                            <ul class="list-unstyled mb-0">
+                                <li>1. Your RFID card has been registered</li>
+                                <li>2. You can now mark attendance using face + RFID</li>
+                                <li>3. Login to view your attendance dashboard</li>
+                            </ul>
+                        </div>
+
+                        <div class="d-grid">
+                            <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Login to Dashboard
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if step == 3 %}
+<script>
+    let video = document.getElementById('video');
+    let canvas = document.getElementById('canvas');
+    let captureBtn = document.getElementById('captureBtn');
+    let retakeBtn = document.getElementById('retakeBtn');
+    let confirmBtn = document.getElementById('confirmBtn');
+    let capturedImageData = null;
+
+    // Start camera
+    navigator.mediaDevices.getUserMedia({
+        video: {
+            width: { ideal: 400 },
+            height: { ideal: 300 },
+            facingMode: 'user'
+        }
+    })
+        .then(function (stream) {
+            video.srcObject = stream;
+        })
+        .catch(function (err) {
+            console.error('Error accessing camera:', err);
+            alert('Unable to access camera. Please ensure camera permissions are granted and try refreshing the page.');
+        });
+
+    function capturePhoto() {
+        // Set canvas dimensions to match video
+        const videoRect = video.getBoundingClientRect();
+        canvas.width = video.videoWidth || 400;
+        canvas.height = video.videoHeight || 300;
+
+        const context = canvas.getContext('2d');
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Convert to base64
+        capturedImageData = canvas.toDataURL('image/jpeg', 0.8);
+
+        // Show captured image
+        video.style.display = 'none';
+        canvas.style.display = 'block';
+        canvas.classList.remove('d-none');
+
+        // Update buttons
+        captureBtn.classList.add('d-none');
+        retakeBtn.classList.remove('d-none');
+        confirmBtn.classList.remove('d-none');
+
+        // Show success message
+        showMessage('Photo captured successfully! Review and confirm or retake if needed.', 'success');
+    }
+
+    function retakePhoto() {
+        resetCapture();
+        showMessage('Ready to capture again. Position your face in the center and click capture.', 'info');
+    }
+
+    function confirmCapture() {
+        if (!capturedImageData) {
+            alert('Please capture your face first');
+            return;
+        }
+
+        const enrollmentNo = document.getElementById('enrollment_no_hidden').value;
+
+        showLoading(confirmBtn);
+        showMessage('Processing face capture... Please wait.', 'info');
+
+        // Send captured image to server
+        fetch('/capture_face', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                enrollment_no: enrollmentNo,
+                image_data: capturedImageData
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('Face registration successful! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '{{ url_for("register") }}?step=4';
+                    }, 1500);
+                } else {
+                    showMessage('Face capture failed: ' + data.message, 'danger');
+                    resetCapture();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Error processing face capture. Please try again.', 'danger');
+                resetCapture();
+            });
+    }
+
+    function resetCapture() {
+        video.style.display = 'block';
+        canvas.style.display = 'none';
+        canvas.classList.add('d-none');
+        captureBtn.classList.remove('d-none');
+        retakeBtn.classList.add('d-none');
+        confirmBtn.classList.add('d-none');
+        hideLoading(confirmBtn, '<i class="fas fa-check me-2"></i>Confirm & Complete Registration');
+    }
+
+    function showMessage(message, type) {
+        // Remove existing messages
+        const existingAlerts = document.querySelectorAll('.alert-temporary');
+        existingAlerts.forEach(alert => alert.remove());
+
+        // Create new alert
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show alert-temporary mt-3`;
+        alertDiv.style.maxWidth = '400px';
+        alertDiv.style.margin = '0 auto';
+        alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+        // Insert after the video container
+        const videoContainer = document.querySelector('.position-relative');
+        videoContainer.parentNode.insertBefore(alertDiv, videoContainer.nextSibling);
+
+        // Auto-dismiss after 5 seconds for non-error messages
+        if (type !== 'danger') {
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+    }
+
+    // Add loading animation styles
+    const style = document.createElement('style');
+    style.textContent = `
+    .loading-pulse {
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+`;
+    document.head.appendChild(style);
+</script>
+{% endif %}
+
+{% if step == 2 %}
+<script>
+    // Auto-focus on OTP input
+    document.getElementById('otp_code').focus();
+
+    // Auto-submit when 6 digits entered
+    document.getElementById('otp_code').addEventListener('input', function (e) {
+        if (e.target.value.length === 6) {
+            document.getElementById('otpForm').submit();
+        }
+    });
+
+    function resendOTP() {
+        // Redirect back to step 1 to resend OTP
+        window.location.href = '{{ url_for("register") }}';
+    }
+</script>
+{% endif %}
+{% endblock %}

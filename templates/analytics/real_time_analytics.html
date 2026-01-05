@@ -1,0 +1,549 @@
+{% extends "base.html" %}
+
+{% block title %}Real-Time Analytics Dashboard{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
+<style>
+    /* Modern Dashboard Styles */
+    .dashboard-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    }
+
+    .stat-card {
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        border: none;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+    }
+
+    .stat-card.primary::before { background: linear-gradient(90deg, #667eea, #764ba2); }
+    .stat-card.success::before { background: linear-gradient(90deg, #11998e, #38ef7d); }
+    .stat-card.danger::before { background: linear-gradient(90deg, #ee0979, #ff6a00); }
+    .stat-card.warning::before { background: linear-gradient(90deg, #f093fb, #f5576c); }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+    }
+
+    .stat-icon {
+        font-size: 3rem;
+        opacity: 0.2;
+        position: absolute;
+        right: 20px;
+        top: 20px;
+    }
+
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin: 10px 0;
+        color: #2c3e50;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: #7f8c8d;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .chart-container {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+
+    .real-time-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 15px;
+        background: #fff;
+        border-radius: 20px;
+        font-size: 0.9rem;
+    }
+
+    .pulse-dot {
+        width: 10px;
+        height: 10px;
+        background: #38ef7d;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.5; transform: scale(1.2); }
+    }
+
+    .activity-item {
+        padding: 15px;
+        border-left: 3px solid #667eea;
+        margin-bottom: 15px;
+        background: #f8f9fa;
+        border-radius: 5px;
+        transition: all 0.3s ease;
+    }
+
+    .activity-item:hover {
+        background: #e9ecef;
+        transform: translateX(5px);
+    }
+
+    .trend-positive {
+        color: #38ef7d;
+    }
+
+    .trend-negative {
+        color: #ff6a00;
+    }
+
+    .filter-btn {
+        background: white;
+        border: 2px solid #e9ecef;
+        padding: 8px 20px;
+        border-radius: 25px;
+        margin: 5px;
+        transition: all 0.3s ease;
+    }
+
+    .filter-btn.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-color: #667eea;
+    }
+
+    .filter-btn:hover {
+        border-color: #667eea;
+        transform: translateY(-2px);
+    }
+</style>
+
+<div class="container-fluid mt-4">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="mb-1"><i class="fas fa-chart-line me-2"></i>Analytics Dashboard</h2>
+                <p class="mb-0 opacity-75">Real-time attendance monitoring and insights</p>
+            </div>
+            <div class="real-time-indicator">
+                <span class="pulse-dot"></span>
+                <span>Live</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card primary">
+                <i class="fas fa-users stat-icon"></i>
+                <div class="stat-label">Total Students</div>
+                <div class="stat-value" id="totalStudents">0</div>
+                <div class="text-muted small">
+                    <i class="fas fa-arrow-up trend-positive"></i> 
+                    <span id="studentTrend">0%</span> from last week
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card success">
+                <i class="fas fa-user-check stat-icon"></i>
+                <div class="stat-label">Average Attendance</div>
+                <div class="stat-value" id="avgAttendance">0%</div>
+                <div class="text-muted small">
+                    <i class="fas fa-arrow-up trend-positive"></i> 
+                    <span id="attendanceTrend">0%</span> improvement
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card warning">
+                <i class="fas fa-chalkboard-teacher stat-icon"></i>
+                <div class="stat-label">Total Sessions</div>
+                <div class="stat-value" id="totalSessions">0</div>
+                <div class="text-muted small">
+                    <i class="fas fa-calendar me-1"></i> 
+                    <span id="sessionsToday">0</span> today
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card danger">
+                <i class="fas fa-exclamation-triangle stat-icon"></i>
+                <div class="stat-label">Low Attendance</div>
+                <div class="stat-value" id="lowAttendance">0</div>
+                <div class="text-muted small">
+                    Students below 75%
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Buttons -->
+    <div class="text-center mb-4">
+        <button class="filter-btn active" onclick="filterData('today')">Today</button>
+        <button class="filter-btn" onclick="filterData('week')">This Week</button>
+        <button class="filter-btn" onclick="filterData('month')">This Month</button>
+        <button class="filter-btn" onclick="filterData('semester')">Semester</button>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row">
+        <!-- Attendance Trend Chart -->
+        <div class="col-xl-8 col-lg-7">
+            <div class="chart-container">
+                <h5 class="mb-4">
+                    <i class="fas fa-chart-area text-primary me-2"></i>
+                    Attendance Trend
+                </h5>
+                <canvas id="attendanceTrendChart" height="80"></canvas>
+            </div>
+        </div>
+
+        <!-- Subject-wise Distribution -->
+        <div class="col-xl-4 col-lg-5">
+            <div class="chart-container">
+                <h5 class="mb-4">
+                    <i class="fas fa-chart-pie text-success me-2"></i>
+                    Subject-wise
+                </h5>
+                <canvas id="subjectChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Second Row Charts -->
+    <div class="row">
+        <!-- Time-wise Attendance -->
+        <div class="col-xl-6">
+            <div class="chart-container">
+                <h5 class="mb-4">
+                    <i class="fas fa-clock text-warning me-2"></i>
+                    Time-wise Attendance
+                </h5>
+                <canvas id="timeChart" height="100"></canvas>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="col-xl-6">
+            <div class="chart-container">
+                <h5 class="mb-4">
+                    <i class="fas fa-history text-info me-2"></i>
+                    Recent Activity
+                </h5>
+                <div id="recentActivity" style="max-height: 400px; overflow-y: auto;">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-spinner fa-spin fa-2x"></i>
+                        <p class="mt-3">Loading activity...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Department Comparison -->
+    <div class="row">
+        <div class="col-12">
+            <div class="chart-container">
+                <h5 class="mb-4">
+                    <i class="fas fa-building text-danger me-2"></i>
+                    Department-wise Comparison
+                </h5>
+                <canvas id="departmentChart" height="60"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let attendanceTrendChart, subjectChart, timeChart, departmentChart;
+let currentFilter = 'today';
+let socket;
+
+// Initialize Socket.IO for real-time updates
+document.addEventListener('DOMContentLoaded', function() {
+    socket = io();
+    
+    socket.on('connect', function() {
+        console.log('Connected to real-time updates');
+    });
+    
+    socket.on('attendance_marked', function(data) {
+        console.log('Attendance marked:', data);
+        refreshDashboard();
+    });
+    
+    socket.on('session_started', function(data) {
+        console.log('Session started:', data);
+        refreshDashboard();
+    });
+    
+    socket.on('session_ended', function(data) {
+        console.log('Session ended:', data);
+        refreshDashboard();
+    });
+    
+    // Initial load
+    loadDashboardData();
+    
+    // Auto-refresh every 30 seconds
+    setInterval(refreshDashboard, 30000);
+});
+
+async function loadDashboardData() {
+    try {
+        const response = await fetch(`/api/analytics/dashboard?filter=${currentFilter}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            updateStatistics(data.stats);
+            updateCharts(data);
+            updateRecentActivity(data.recent_activity);
+        }
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+    }
+}
+
+function updateStatistics(stats) {
+    document.getElementById('totalStudents').textContent = stats.total_students || 0;
+    document.getElementById('avgAttendance').textContent = (stats.avg_attendance || 0) + '%';
+    document.getElementById('totalSessions').textContent = stats.total_sessions || 0;
+    document.getElementById('lowAttendance').textContent = stats.low_attendance_count || 0;
+    document.getElementById('sessionsToday').textContent = stats.sessions_today || 0;
+    
+    // Update trends
+    if (stats.student_trend) {
+        document.getElementById('studentTrend').textContent = stats.student_trend + '%';
+    }
+    if (stats.attendance_trend) {
+        document.getElementById('attendanceTrend').textContent = stats.attendance_trend + '%';
+    }
+}
+
+function updateCharts(data) {
+    // Attendance Trend Chart
+    updateAttendanceTrendChart(data.attendance_trend);
+    
+    // Subject Chart
+    updateSubjectChart(data.subject_data);
+    
+    // Time Chart
+    updateTimeChart(data.time_data);
+    
+    // Department Chart
+    updateDepartmentChart(data.department_data);
+}
+
+function updateAttendanceTrendChart(trendData) {
+    const ctx = document.getElementById('attendanceTrendChart');
+    
+    if (attendanceTrendChart) {
+        attendanceTrendChart.destroy();
+    }
+    
+    attendanceTrendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: trendData?.labels || [],
+            datasets: [{
+                label: 'Attendance %',
+                data: trendData?.data || [],
+                borderColor: 'rgb(102, 126, 234)',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+}
+
+function updateSubjectChart(subjectData) {
+    const ctx = document.getElementById('subjectChart');
+    
+    if (subjectChart) {
+        subjectChart.destroy();
+    }
+    
+    subjectChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: subjectData?.labels || [],
+            datasets: [{
+                data: subjectData?.data || [],
+                backgroundColor: [
+                    '#667eea',
+                    '#38ef7d',
+                    '#ff6a00',
+                    '#f5576c',
+                    '#4facfe'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+function updateTimeChart(timeData) {
+    const ctx = document.getElementById('timeChart');
+    
+    if (timeChart) {
+        timeChart.destroy();
+    }
+    
+    timeChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: timeData?.labels || [],
+            datasets: [{
+                label: 'Students Present',
+                data: timeData?.data || [],
+                backgroundColor: 'rgba(56, 239, 125, 0.8)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function updateDepartmentChart(deptData) {
+    const ctx = document.getElementById('departmentChart');
+    
+    if (departmentChart) {
+        departmentChart.destroy();
+    }
+    
+    departmentChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: deptData?.labels || [],
+            datasets: [{
+                label: 'Attendance %',
+                data: deptData?.data || [],
+                backgroundColor: [
+                    'rgba(102, 126, 234, 0.8)',
+                    'rgba(56, 239, 125, 0.8)',
+                    'rgba(255, 106, 0, 0.8)',
+                    'rgba(245, 87, 108, 0.8)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+}
+
+function updateRecentActivity(activities) {
+    const container = document.getElementById('recentActivity');
+    
+    if (!activities || activities.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-inbox fa-2x"></i>
+                <p class="mt-3">No recent activity</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = activities.map(activity => `
+        <div class="activity-item">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <i class="fas fa-${activity.icon} text-primary me-2"></i>
+                    <strong>${activity.title}</strong>
+                    <p class="mb-0 text-muted small">${activity.description}</p>
+                </div>
+                <small class="text-muted">${activity.time}</small>
+            </div>
+        </div>
+    `).join('');
+}
+
+function filterData(period) {
+    currentFilter = period;
+    
+    // Update active button
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Reload data
+    loadDashboardData();
+}
+
+function refreshDashboard() {
+    loadDashboardData();
+}
+</script>
+
+{% endblock %}

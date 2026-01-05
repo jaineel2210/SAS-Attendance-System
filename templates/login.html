@@ -1,0 +1,477 @@
+{% extends "base.html" %}
+
+{% block title %}Login - SecureAttend Pro{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white text-center py-4">
+                    <h3 class="mb-0">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login to SecureAttend Pro
+                    </h3>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" id="loginForm" action="{{ url_for('login') }}"
+                          data-has-otp="{{ 'true' if session.get('temp_admin_mobile') else 'false' }}"
+                          data-resend-url="{{ url_for('enhanced_registration.resend_otp', role=session.get('temp_role', '')) }}">
+                        <!-- Display flash messages -->
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{% if category == 'info' %}primary{% elif category == 'error' %}danger{% else %}{{ category }}{% endif %} alert-dismissible fade show" role="alert">
+                                        {% if category == 'info' %}
+                                            <i class="fas fa-info-circle me-2"></i>
+                                        {% elif category == 'success' %}
+                                            <i class="fas fa-check-circle me-2"></i>
+                                        {% elif category == 'error' or category == 'danger' %}
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                        {% endif %}
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                        
+                        <!-- Role Selection -->
+                        <div class="mb-3">
+                            <label for="role" class="form-label">Login As</label>
+                            <select class="form-control" id="role" name="role" required onchange="toggleLoginFields()">
+                                <option value="student" {% if session.get('temp_role') == 'student' %}selected{% endif %}>Student</option>
+                                <option value="faculty" {% if session.get('temp_role') == 'faculty' %}selected{% endif %}>Faculty</option>
+                                <option value="admin" {% if session.get('temp_role') == 'admin' %}selected{% endif %}>Administrator</option>
+                            </select>
+                        </div>
+
+                        <!-- Common Fields -->
+                        <div class="mb-3">
+                            <label for="identifier" class="form-label">Enrollment No. / Mobile Number / Faculty ID</label>
+                            <input type="text" class="form-control" id="identifier" name="identifier" required
+                                   placeholder="Enter enrollment number or mobile number"
+                                   value="{{ session.get('temp_admin_identifier', '') }}">
+                        </div>
+
+                        <div class="mb-3" id="passwordField">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password"
+                                   placeholder="Enter your password">
+                        </div>
+
+                        <!-- Admin-specific fields -->
+                        <div class="mb-3 d-none" id="adminMobileField">
+                            <label for="mobile_number" class="form-label">📱 Mobile Number (for OTP)</label>
+                            <input type="tel" class="form-control" id="mobile_number" name="mobile_number"
+                                   placeholder="Enter 10-digit mobile number"
+                                   value="{{ session.get('temp_admin_mobile', '') }}"
+                                   maxlength="10" pattern="[0-9]{10}">
+                            <small class="form-text text-muted">
+                                <i class="fas fa-shield-alt me-1"></i>OTP will be sent to this number for verification
+                            </small>
+                        </div>
+
+                        <div class="mb-3 d-none" id="otpField">
+                            <label for="otp_code" class="form-label">📱 OTP Code</label>
+                            <input type="text" class="form-control text-center" id="otp_code" name="otp_code"
+                                   placeholder="Enter 6-digit OTP" maxlength="6" pattern="[0-9]{6}"
+                                   style="font-size: 2rem; letter-spacing: 0.8rem; font-weight: bold; font-family: monospace;">
+                            <small class="form-text text-warning d-block mt-2">
+                                <i class="fas fa-clock me-1"></i>OTP expires in <span id="otpTimer" style="font-weight: bold;">30</span> seconds
+                            </small>
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-link btn-sm p-0 text-primary" onclick="resendOTP()">
+                                    <i class="fas fa-redo me-1"></i>Resend OTP
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg" id="loginBtn">
+                                <i class="fas fa-sign-in-alt me-2"></i>Login
+                            </button>
+                        </div>
+                    </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('loginForm');
+    const loginBtn = document.getElementById('loginBtn');
+    
+    form.addEventListener('submit', function(e) {
+        // Validate form first
+        if (!validateForm()) {
+            e.preventDefault();
+            return false;
+        }
+        
+        const role = document.getElementById('role').value;
+        
+        // For admin login, allow normal form submission to handle page reload properly
+        if (role === 'admin') {
+            // Show loading state
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+            // Let the form submit normally
+            return true;
+        }
+        
+        // For student/faculty, also allow normal submission
+        loginBtn.disabled = true;
+        loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        return true;
+    });
+    
+    function showMessage(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        form.insertAdjacentElement('beforebegin', alertDiv);
+        
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+});
+</script>
+
+                    <hr class="my-4">
+
+                    <div class="text-center">
+                        <p class="mb-2">Don't have an account?</p>
+                        <a href="{{ url_for('enhanced_registration.register_role', role='student') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-user-plus me-2"></i>Register as Student
+                        </a>
+                    </div>
+
+                    <!-- Demo Credentials -->
+                    <div class="mt-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title">Demo Credentials</h6>
+                                <small class="text-muted">
+                                    <strong>Admin:</strong> ADMIN001 / admin123<br>
+                                    <strong>Faculty:</strong> Create via admin panel<br>
+                                    <strong>Student:</strong> Register new account
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleLoginFields() {
+    const role = document.getElementById('role').value;
+    const identifierField = document.getElementById('identifier');
+    const passwordField = document.getElementById('passwordField');
+    const adminMobileField = document.getElementById('adminMobileField');
+    const otpField = document.getElementById('otpField');
+    const password = document.getElementById('password');
+    const loginBtn = document.getElementById('loginBtn');
+    const mobileNumber = document.getElementById('mobile_number');
+
+    // Update identifier placeholder based on role
+    if (role === 'student') {
+        identifierField.placeholder = 'Enter enrollment number (e.g., 2201031000066)';
+        identifierField.pattern = '^(2201031000\\d{3}|2301031030\\d{3}|22010310300\\d{2}|2101031000052)$';
+    } else if (role === 'faculty') {
+        identifierField.placeholder = 'Enter faculty ID (e.g., FAC001)';
+        identifierField.pattern = '^FAC\\d{3}$';
+    } else if (role === 'admin') {
+        identifierField.placeholder = 'Enter admin ID (e.g., ADM001 or ADMIN001)';
+        identifierField.pattern = '^(ADM\\d{3}|ADMIN\\d{3})$';
+        identifierField.required = true;
+        password.required = true;
+    }
+
+    // Reset validation state
+    [identifierField, password, document.getElementById('mobile_number'), document.getElementById('otp_code')]
+        .forEach(field => {
+            if (field) {
+                field.classList.remove('is-invalid');
+                const feedback = field.nextElementSibling;
+                if (feedback && feedback.classList.contains('invalid-feedback')) {
+                    feedback.remove();
+                }
+            }
+        });
+
+    if (role === 'admin') {
+        passwordField.style.display = 'block';
+        adminMobileField.classList.remove('d-none');
+        password.required = true;
+        
+        // Get the session value from a data attribute
+        const hasTempAdminMobile = document.getElementById('loginForm').dataset.hasOtp === 'true';
+        
+        if (hasTempAdminMobile) {
+            otpField.classList.remove('d-none');
+            loginBtn.innerHTML = '<i class="fas fa-check me-2"></i>Verify OTP & Login';
+        } else {
+            otpField.classList.add('d-none');
+            loginBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Send OTP';
+        }
+    } else {
+        passwordField.style.display = 'block';
+        adminMobileField.classList.add('d-none');
+        otpField.classList.add('d-none');
+        password.required = true;
+        loginBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Login';
+    }
+}
+
+// Loading state functions
+function showLoading(button) {
+    button.disabled = true;
+    button.classList.add('loading-pulse');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+    return originalText;
+}
+
+function hideLoading(button, originalText) {
+    button.disabled = false;
+    button.classList.remove('loading-pulse');
+    button.innerHTML = originalText;
+}
+
+// Form validation
+function validateForm() {
+    const role = document.getElementById('role').value;
+    const identifier = document.getElementById('identifier');
+    const password = document.getElementById('password');
+    const mobileNumber = document.getElementById('mobile_number');
+    const otpCode = document.getElementById('otp_code');
+    const otpField = document.getElementById('otpField');
+    const adminMobileField = document.getElementById('adminMobileField');
+    const loginBtn = document.getElementById('loginBtn');
+
+    // Clear previous validation
+    [identifier, password, mobileNumber, otpCode].forEach(field => {
+        if (field) {
+            field.classList.remove('is-invalid');
+            const feedback = field.nextElementSibling;
+            if (feedback && feedback.classList.contains('invalid-feedback')) {
+                feedback.remove();
+            }
+        }
+    });
+
+    let isValid = true;
+
+    // Validate identifier based on role
+    if (role === 'student') {
+        if (!/^(2201031000\d{3}|2301031030\d{3}|22010310300\d{2}|2101031000052)$/.test(identifier.value)) {
+            showError(identifier, 'Please enter a valid enrollment number');
+            isValid = false;
+        }
+    } else if (role === 'faculty' && !/^FAC\d{3}$/.test(identifier.value)) {
+        showError(identifier, 'Please enter a valid faculty ID (e.g., FAC001)');
+        isValid = false;
+    } else if (role === 'admin' && !/^(ADM\d{3}|ADMIN\d{3})$/.test(identifier.value)) {
+        showError(identifier, 'Please enter a valid admin ID (e.g., ADM001 or ADMIN001)');
+        isValid = false;
+    }
+
+    // Validate password
+    if (password.style.display !== 'none' && password.value.length < 6) {
+        showError(password, 'Password must be at least 6 characters long');
+        isValid = false;
+    }
+
+    // Validate mobile number for admin (only if OTP field is hidden - meaning we're sending OTP)
+    if (role === 'admin' && !adminMobileField.classList.contains('d-none') && otpField.classList.contains('d-none')) {
+        if (!/^[0-9]{10}$/.test(mobileNumber.value)) {
+            showError(mobileNumber, 'Please enter a valid 10-digit mobile number');
+            isValid = false;
+        }
+    }
+
+    // Validate OTP if visible (checking the otpField container, not the input)
+    if (!otpField.classList.contains('d-none') && otpCode.value) {
+        if (!/^[0-9]{6}$/.test(otpCode.value)) {
+            showError(otpCode, 'Please enter a valid 6-digit OTP');
+            isValid = false;
+        }
+    }
+
+    return isValid;
+}
+
+function showError(element, message) {
+    element.classList.add('is-invalid');
+    const feedback = document.createElement('div');
+    feedback.className = 'invalid-feedback';
+    feedback.textContent = message;
+    element.parentNode.appendChild(feedback);
+}
+
+
+// Add loading animation styles
+const style = document.createElement('style');
+style.textContent = `
+    .loading-pulse {
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    
+    /* OTP Input Styling */
+    #otp_code {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border: 2px solid #0d6efd;
+        box-shadow: 0 4px 6px rgba(13, 110, 253, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    #otp_code:focus {
+        background: #ffffff;
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25), 0 4px 12px rgba(13, 110, 253, 0.2);
+        transform: translateY(-2px);
+    }
+    
+    #otpTimer {
+        color: #dc3545;
+        font-size: 1.1em;
+        animation: pulse 2s infinite;
+    }
+    
+    /* Mobile Number Input Styling */
+    #adminMobileField input {
+        border-left: 4px solid #0d6efd;
+    }
+`;
+document.head.appendChild(style);
+
+// OTP Timer functionality
+let otpTimerInterval;
+
+function startOTPTimer() {
+    const timerElement = document.getElementById('otpTimer');
+    let timeLeft = 30;
+    
+    clearInterval(otpTimerInterval);
+    
+    timerElement.textContent = timeLeft;
+    otpTimerInterval = setInterval(() => {
+        timeLeft--;
+        timerElement.textContent = timeLeft;
+        
+        if (timeLeft <= 0) {
+            clearInterval(otpTimerInterval);
+            // Clear OTP field and show resend button
+            document.getElementById('otp_code').value = '';
+            document.getElementById('otp_code').disabled = true;
+        }
+    }, 1000);
+}
+
+function resendOTP() {
+    const mobileNumber = document.getElementById('mobile_number').value;
+    const loginBtn = document.getElementById('loginBtn');
+    const originalText = loginBtn.innerHTML;
+    
+    if (!/^[0-9]{10}$/.test(mobileNumber)) {
+        showError(document.getElementById('mobile_number'), 'Please enter a valid mobile number first');
+        return;
+    }
+    
+    showLoading(loginBtn);
+    
+    // Reset OTP field
+    document.getElementById('otp_code').value = '';
+    document.getElementById('otp_code').disabled = false;
+    
+    // Make AJAX call to resend OTP
+    fetch(document.getElementById('loginForm').dataset.resendUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ mobile_number: mobileNumber })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            startOTPTimer();
+            showMessage('OTP sent successfully!', 'success');
+        } else {
+            showMessage(data.message || 'Failed to send OTP', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('Failed to send OTP. Please try again.', 'danger');
+    })
+    .finally(() => {
+        hideLoading(loginBtn, originalText);
+    });
+}
+
+function showMessage(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show mt-3`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const form = document.getElementById('loginForm');
+    form.insertAdjacentElement('beforebegin', alertDiv);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+// Initialize OTP input restrictions
+const otpInput = document.getElementById('otp_code');
+if (otpInput) {
+    // Prevent non-numeric input
+    otpInput.addEventListener('keypress', function(e) {
+        if (!/[0-9]/.test(e.key)) {
+            e.preventDefault();
+        }
+    });
+
+    // Clean input on paste
+    otpInput.addEventListener('paste', function(e) {
+        e.preventDefault();
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+        const cleanNumber = pastedText.replace(/[^0-9]/g, '').slice(0, 6);
+        this.value = cleanNumber;
+    });
+
+    // Clean up any non-numeric characters
+    otpInput.addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);
+        if (this.value.length === 6) {
+            document.getElementById('loginForm').submit();
+        }
+    });
+}
+
+// Initialize form state
+toggleLoginFields();
+
+// Start OTP timer if OTP field is visible and we have a temp admin mobile
+if (document.getElementById('loginForm').dataset.hasOtp === 'true' && 
+    !document.getElementById('otpField').classList.contains('d-none')) {
+    startOTPTimer();
+    // Focus on OTP input field
+    document.getElementById('otp_code').focus();
+}
+</script>
+{% endblock %}

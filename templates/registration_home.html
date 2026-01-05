@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Choose Registration Type - SecureAttend Pro{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white text-center py-4">
+                    <h2 class="mb-0">
+                        <i class="fas fa-user-plus me-2"></i>Create New Account
+                    </h2>
+                    <p class="mb-0 mt-2">Choose your registration type</p>
+                </div>
+                <div class="card-body p-5">
+                    <div class="row g-4">
+                        <!-- Student Registration -->
+                        <div class="col-md-4">
+                            <div class="card h-100 border-success registration-card" onclick="selectRole('student')">
+                                <div class="card-body text-center p-4">
+                                    <div class="mb-3">
+                                        <i class="fas fa-graduation-cap fa-4x text-success"></i>
+                                    </div>
+                                    <h4 class="card-title text-success">Student</h4>
+                                    <p class="card-text text-muted">
+                                        Register as a student to mark attendance using face recognition and RFID card.
+                                    </p>
+                                    <ul class="list-unstyled text-start mt-3">
+                                        <li><i class="fas fa-check text-success me-2"></i>Face Recognition</li>
+                                        <li><i class="fas fa-check text-success me-2"></i>RFID Card Access</li>
+                                        <li><i class="fas fa-check text-success me-2"></i>Attendance Tracking</li>
+                                        <li><i class="fas fa-check text-success me-2"></i>Performance Analytics</li>
+                                    </ul>
+                                </div>
+                                <div class="card-footer bg-success text-white text-center py-3">
+                                    <strong>Register as Student</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Faculty Registration -->
+                        <div class="col-md-4">
+                            <div class="card h-100 border-info registration-card" onclick="selectRole('faculty')">
+                                <div class="card-body text-center p-4">
+                                    <div class="mb-3">
+                                        <i class="fas fa-chalkboard-teacher fa-4x text-info"></i>
+                                    </div>
+                                    <h4 class="card-title text-info">Faculty</h4>
+                                    <p class="card-text text-muted">
+                                        Register as faculty to manage classes and view student attendance records.
+                                    </p>
+                                    <ul class="list-unstyled text-start mt-3">
+                                        <li><i class="fas fa-check text-info me-2"></i>Class Management</li>
+                                        <li><i class="fas fa-check text-info me-2"></i>Attendance Reports</li>
+                                        <li><i class="fas fa-check text-info me-2"></i>Student Analytics</li>
+                                        <li><i class="fas fa-check text-info me-2"></i>Department Access</li>
+                                    </ul>
+                                </div>
+                                <div class="card-footer bg-info text-white text-center py-3">
+                                    <strong>Register as Faculty</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Admin Registration -->
+                        <div class="col-md-4">
+                            <div class="card h-100 border-danger registration-card" onclick="selectRole('admin')">
+                                <div class="card-body text-center p-4">
+                                    <div class="mb-3">
+                                        <i class="fas fa-user-shield fa-4x text-danger"></i>
+                                    </div>
+                                    <h4 class="card-title text-danger">Administrator</h4>
+                                    <p class="card-text text-muted">
+                                        Register as admin to manage the entire system, users, and configurations.
+                                    </p>
+                                    <ul class="list-unstyled text-start mt-3">
+                                        <li><i class="fas fa-check text-danger me-2"></i>System Management</li>
+                                        <li><i class="fas fa-check text-danger me-2"></i>User Administration</li>
+                                        <li><i class="fas fa-check text-danger me-2"></i>Full Analytics</li>
+                                        <li><i class="fas fa-check text-danger me-2"></i>System Configuration</li>
+                                    </ul>
+                                </div>
+                                <div class="card-footer bg-danger text-white text-center py-3">
+                                    <strong>Register as Admin</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Information -->
+                    <div class="row mt-5">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <h5><i class="fas fa-info-circle me-2"></i>Registration Process</h5>
+                                <p class="mb-0">
+                                    All registrations require mobile number verification via OTP. Students will also
+                                    need to capture their face for attendance recognition.
+                                    Faculty and Admin accounts are verified immediately after OTP confirmation.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Already have an account -->
+                    <div class="text-center mt-4">
+                        <p class="text-muted">
+                            Already have an account?
+                            <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-sign-in-alt me-1"></i>Login Here
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .registration-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-width: 2px;
+    }
+
+    .registration-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .registration-card:hover .card-footer {
+        animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.8;
+        }
+
+        100% {
+            opacity: 1;
+        }
+    }
+</style>
+
+<script>
+    function selectRole(role) {
+        // Add visual feedback
+        const card = event.currentTarget;
+        card.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            card.style.transform = 'translateY(-5px)';
+            // Redirect to role-specific registration
+            window.location.href = `/register/${role}`;
+        }, 150);
+    }
+
+    // Add keyboard navigation
+    document.addEventListener('keydown', function (e) {
+        if (e.key === '1') selectRole('student');
+        if (e.key === '2') selectRole('faculty');
+        if (e.key === '3') selectRole('admin');
+    });
+
+    // Add hover effects for better UX
+    document.querySelectorAll('.registration-card').forEach(card => {
+        card.addEventListener('mouseenter', function () {
+            this.style.transform = 'translateY(-5px)';
+        });
+
+        card.addEventListener('mouseleave', function () {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+</script>
+{% endblock %}

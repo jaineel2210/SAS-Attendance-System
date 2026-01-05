@@ -1,0 +1,663 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if role == 'admin' %}Admin Registration{% elif role == 'faculty' %}Faculty Registration{% else %}Student
+Registration{% endif %} - SecureAttend Pro
+{% endblock %}
+
+{% block content %}
+<style>
+    .progress-bar {
+        transition: width 0.5s ease-in-out;
+    }
+</style>
+<!-- Initialize progress bar -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        function updateProgressBar() {
+            const progressBar = document.querySelector('.progress-bar');
+            if (progressBar) {
+                const step = parseInt(progressBar.getAttribute('data-step')) || 1;
+                let width = 25;
+                if (step === 2) width = 50;
+                else if (step === 3) width = 75;
+                else if (step === 4) width = 100;
+                setTimeout(() => {
+                    progressBar.style.width = width + '%';
+                }, 100);
+            }
+        }
+        updateProgressBar();
+    });
+</script>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg">
+                <div
+                    class="card-header {% if role == 'admin' %}bg-danger{% elif role == 'faculty' %}bg-info{% else %}bg-success{% endif %} text-white text-center py-4">
+                    <h3 class="mb-0">
+                        {% if role == 'admin' %}
+                        <i class="fas fa-user-shield me-2"></i>Administrator Registration
+                        {% elif role == 'faculty' %}
+                        <i class="fas fa-chalkboard-teacher me-2"></i>Faculty Registration
+                        {% else %}
+                        <i class="fas fa-user-plus me-2"></i>Student Registration
+                        {% endif %}
+                    </h3>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Progress Steps -->
+                    <div class="mb-4">
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar {% if role == 'admin' %}bg-danger{% elif role == 'faculty' %}bg-info{% else %}bg-success{% endif %}"
+                                role="progressbar"
+                                data-step="{{ step|default(1) }}"
+                                style="width: 0%">
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-2">
+                            <small
+                                class="text-{% if step >= 1 %}{% if role == 'admin' %}danger{% elif role == 'faculty' %}info{% else %}success{% endif %}{% else %}muted{% endif %}">Info</small>
+                            <small
+                                class="text-{% if step >= 2 %}{% if role == 'admin' %}danger{% elif role == 'faculty' %}info{% else %}success{% endif %}{% else %}muted{% endif %}">OTP</small>
+                            {% if role == 'student' %}
+                            <small class="text-{% if step >= 3 %}success{% else %}muted{% endif %}">Face</small>
+                            {% endif %}
+                            <small
+                                class="text-{% if step >= 4 or (step >= 3 and role != 'student') %}{% if role == 'admin' %}danger{% elif role == 'faculty' %}info{% else %}success{% endif %}{% else %}muted{% endif %}">Complete</small>
+                        </div>
+                    </div>
+
+                    {% if step == 1 %}
+                    <!-- Step 1: Basic Information -->
+                    <form method="POST" action="{{ url_for('enhanced_registration.handle_registration', role=role) }}">
+                        <input type="hidden" name="step" value="1">
+
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required
+                                placeholder="Enter your full name">
+                        </div>
+
+                        {% if role == 'student' %}
+                        <div class="mb-3">
+                            <label for="enrollment_no" class="form-label">Enrollment Number</label>
+                            <input type="text" class="form-control" id="enrollment_no" name="enrollment_no" required
+                                placeholder="e.g., 2201031000066"
+                                pattern="^(2201031000\d{3}|2301031030\d{3}|22010310300\d{2}|2101031000052)$">
+                            <small class="form-text text-muted">
+                                Enter your valid enrollment number
+                            </small>
+                        </div>
+                        {% elif role == 'faculty' %}
+                        <div class="mb-3">
+                            <label for="faculty_id" class="form-label">Faculty ID</label>
+                            <input type="text" class="form-control" id="faculty_id" name="faculty_id" required
+                                placeholder="e.g., FAC001" pattern="^FAC\d{3}$">
+                            <small class="form-text text-muted">
+                                Enter your faculty ID (Format: FAC001)
+                            </small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="department" class="form-label">Department</label>
+                            <select class="form-control" id="department" name="department" required>
+                                <option value="">Select Department</option>
+                                <option value="Computer Science">Computer Science</option>
+                                <option value="Electronics">Electronics</option>
+                                <option value="Mechanical">Mechanical</option>
+                                <option value="Civil">Civil</option>
+                                <option value="Electrical">Electrical</option>
+                                <option value="Mathematics">Mathematics</option>
+                                <option value="Physics">Physics</option>
+                                <option value="Chemistry">Chemistry</option>
+                            </select>
+                        </div>
+                        {% elif role == 'admin' %}
+                        <div class="mb-3">
+                            <label for="admin_id" class="form-label">Administrator ID</label>
+                            <input type="text" class="form-control" id="admin_id" name="admin_id" required
+                                placeholder="e.g., ADM001" pattern="^ADM\d{3}$">
+                            <small class="form-text text-muted">
+                                Enter your administrator ID (Format: ADM001)
+                            </small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="admin_level" class="form-label">Admin Level</label>
+                            <select class="form-control" id="admin_level" name="admin_level" required>
+                                <option value="standard">Standard Admin</option>
+                                <option value="super">Super Admin</option>
+                                <option value="system">System Admin</option>
+                            </select>
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label for="mobile_number" class="form-label">Mobile Number</label>
+                            <input type="tel" class="form-control" id="mobile_number" name="mobile_number" required
+                                placeholder="Enter 10-digit mobile number" pattern="[0-9]{10}">
+                        </div>
+
+                        <!-- Password Section -->
+                        <div class="mb-4">
+                            <h6
+                                class="text-{% if role == 'admin' %}danger{% elif role == 'faculty' %}info{% else %}success{% endif %} mb-3">
+                                <i class="fas fa-lock me-2"></i>Create Your Login Password
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="password" class="form-label">Password</label>
+                                        <input type="password" class="form-control" id="password" name="password"
+                                            required placeholder="Enter strong password" minlength="6">
+                                        <small class="form-text text-muted">
+                                            Minimum 6 characters required
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="confirm_password" class="form-label">Confirm Password</label>
+                                        <input type="password" class="form-control" id="confirm_password"
+                                            name="confirm_password" required placeholder="Confirm your password"
+                                            minlength="6">
+                                        <small class="form-text" id="password-match-text">
+                                            Passwords must match
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if role != 'student' %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Note:</strong>
+                            {% if role == 'faculty' %}Faculty accounts are verified immediately after OTP confirmation.
+                            {% elif role == 'admin' %}Administrator accounts require additional verification by existing
+                            super admin.
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <div class="d-grid">
+                            <button type="submit"
+                                class="btn {% if role == 'admin' %}btn-danger{% elif role == 'faculty' %}btn-info{% else %}btn-success{% endif %} btn-lg">
+                                <i class="fas fa-arrow-right me-2"></i>Continue to OTP Verification
+                            </button>
+                        </div>
+                    </form>
+
+                    {% elif step == 2 %}
+                    <!-- Step 2: OTP Verification -->
+                    <div class="text-center mb-4">
+                        <i class="fas fa-mobile-alt fa-3x text-primary mb-3"></i>
+                        <h5>OTP Verification</h5>
+                        <p class="text-muted">Enter the 6-digit OTP sent to your mobile number</p>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('enhanced_registration.handle_registration', role=role) }}"
+                        id="otpForm">
+                        <input type="hidden" name="step" value="2">
+
+                        <div class="mb-3">
+                            <label for="otp_code" class="form-label">OTP Code</label>
+                            <input type="text" class="form-control text-center" id="otp_code" name="otp_code"
+                                maxlength="6" required placeholder="000000"
+                                style="font-size: 1.5rem; letter-spacing: 0.5rem;">
+                            <small class="form-text text-warning">
+                                <i class="fas fa-clock me-1"></i>OTP expires in 30 seconds
+                            </small>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit"
+                                class="btn {% if role == 'admin' %}btn-danger{% elif role == 'faculty' %}btn-info{% else %}btn-success{% endif %} btn-lg">
+                                <i class="fas fa-check me-2"></i>Verify OTP
+                            </button>
+                            {% if resend_otp %}
+                            <button type="button" class="btn btn-outline-primary" onclick="resendOTP()">
+                                <i class="fas fa-redo me-2"></i>Resend OTP
+                            </button>
+                            {% endif %}
+                        </div>
+                    </form>
+
+                    {% elif step == 3 %}
+                    <!-- Step 3: Face Capture (Students Only) -->
+                    <div class="text-center mb-4">
+                        <i class="fas fa-camera fa-3x text-primary mb-3"></i>
+                        <h5>Face Capture</h5>
+                        <p class="text-muted">Position your face in the camera and click capture</p>
+                    </div>
+
+                    <!-- Enhanced Face Capture Interface -->
+                    <div class="d-flex flex-column align-items-center">
+                        <!-- Video Container with Responsive Design -->
+                        <div class="position-relative mb-4" style="max-width: 100%; width: fit-content;">
+                            <video id="video" class="border border-3 border-primary rounded-3 shadow-lg"
+                                style="width: 100%; max-width: 400px; height: auto; aspect-ratio: 4/3;"
+                                autoplay></video>
+
+                            <!-- Face Detection Overlay -->
+                            <div class="position-absolute top-50 start-50 translate-middle"
+                                style="width: 80%; height: 80%; border: 2px dashed rgba(0,123,255,0.7); border-radius: 50%; pointer-events: none;">
+                                <div class="position-absolute top-50 start-50 translate-middle text-primary opacity-75">
+                                    <i class="fas fa-user-circle fa-3x"></i>
+                                </div>
+                            </div>
+
+                            <!-- Captured Photo Preview -->
+                            <canvas id="canvas" class="border border-3 border-success rounded-3 shadow-lg d-none"
+                                style="width: 100%; max-width: 400px; height: auto; aspect-ratio: 4/3;"></canvas>
+                        </div>
+
+                        <!-- Instructions -->
+                        <div class="alert alert-info text-center mb-4" style="max-width: 400px;">
+                            <small class="d-block">
+                                <i class="fas fa-lightbulb me-1"></i>
+                                <strong>Tips:</strong> Ensure good lighting, look directly at camera, and keep face
+                                centered in the circle
+                            </small>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-grid gap-3" style="width: 100%; max-width: 300px;">
+                            <button type="button" class="btn btn-primary btn-lg shadow-sm" id="captureBtn"
+                                onclick="capturePhoto()">
+                                <i class="fas fa-camera me-2"></i>Capture Face
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-lg d-none" id="retakeBtn"
+                                onclick="retakePhoto()">
+                                <i class="fas fa-redo me-2"></i>Retake Photo
+                            </button>
+                            <button type="button" class="btn btn-success btn-lg shadow-sm d-none" id="confirmBtn"
+                                onclick="confirmCapture()">
+                                <i class="fas fa-check me-2"></i>Confirm & Complete Registration
+                            </button>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="identifier_hidden" value="{{ identifier }}">
+
+                    {% elif step == 4 %}
+                    <!-- Step 4: Registration Complete -->
+                    <div class="text-center">
+                        <i
+                            class="fas fa-check-circle fa-4x {% if role == 'admin' %}text-danger{% elif role == 'faculty' %}text-info{% else %}text-success{% endif %} mb-4"></i>
+                        <h4
+                            class="{% if role == 'admin' %}text-danger{% elif role == 'faculty' %}text-info{% else %}text-success{% endif %}">
+                            Registration Successful!</h4>
+
+                        {% if role == 'student' %}
+                        <p class="mb-4">Your student account has been created successfully. You can now log in and mark
+                            attendance using face recognition and RFID card.</p>
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle me-2"></i>Next Steps:</h6>
+                            <ul class="list-unstyled mb-0">
+                                <li>1. Your face has been registered for attendance</li>
+                                <li>2. Get your RFID card from administration</li>
+                                <li>3. You can now mark attendance using face + RFID</li>
+                                <li>4. Login to view your attendance dashboard</li>
+                            </ul>
+                        </div>
+                        {% elif role == 'faculty' %}
+                        <p class="mb-4">Your faculty account has been created and verified successfully. You can now log
+                            in and manage attendance sessions.</p>
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle me-2"></i>Next Steps:</h6>
+                            <ul class="list-unstyled mb-0">
+                                <li>1. Login to your faculty dashboard</li>
+                                <li>2. Start attendance sessions for your classes</li>
+                                <li>3. Monitor real-time attendance marking</li>
+                                <li>4. Access analytics and reports</li>
+                            </ul>
+                        </div>
+                        {% elif role == 'admin' %}
+                        <p class="mb-4">Your administrator account has been created successfully. Please wait for super
+                            admin verification.</p>
+                        <div class="alert alert-warning">
+                            <h6><i class="fas fa-exclamation-triangle me-2"></i>Verification Required:</h6>
+                            <ul class="list-unstyled mb-0">
+                                <li>1. Your account needs super admin approval</li>
+                                <li>2. You will receive SMS notification upon approval</li>
+                                <li>3. Contact existing admin if urgent access is needed</li>
+                                <li>4. Login will be enabled after verification</li>
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        <div class="d-grid">
+                            <a href="{{ url_for('login') }}"
+                                class="btn {% if role == 'admin' %}btn-danger{% elif role == 'faculty' %}btn-info{% else %}btn-success{% endif %} btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Login to Dashboard
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if step < 4 %} <!-- Back to Role Selection -->
+                    <div class="card-footer text-center">
+                        <a href="{{ url_for('index') }}" class="text-muted">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Home
+                        </a>
+                    </div>
+                    {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if step == 3 %}
+<script>
+    let video = document.getElementById('video');
+    let canvas = document.getElementById('canvas');
+    let captureBtn = document.getElementById('captureBtn');
+    let retakeBtn = document.getElementById('retakeBtn');
+    let confirmBtn = document.getElementById('confirmBtn');
+    let capturedImageData = null;
+    let videoStream = null;
+
+    // Cleanup function to stop camera when leaving page
+    window.addEventListener('beforeunload', () => {
+        if (videoStream) {
+            videoStream.getTracks().forEach(track => track.stop());
+        }
+    });
+
+    // Start camera
+    async function initCamera() {
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            
+            if (videoDevices.length === 0) {
+                throw new Error('No camera found');
+            }
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 400 },
+                    height: { ideal: 300 },
+                    facingMode: 'user'
+                }
+            });
+            
+            videoStream = stream; // Store stream for cleanup
+            video.srcObject = stream;
+            video.onloadedmetadata = () => {
+                showMessage('Camera initialized successfully. Starting face detection...', 'success');
+                // Start face detection after camera is initialized
+                detectFace();
+            };
+        } catch (err) {
+            console.error('Error accessing camera:', err);
+            showMessage('Unable to access camera. Please ensure camera permissions are granted and try refreshing the page.', 'danger');
+            captureBtn.disabled = true;
+        }
+    }
+
+    // Initialize camera when page loads
+    initCamera();
+
+    function capturePhoto() {
+        if (!video.srcObject || !video.srcObject.active) {
+            showMessage('Camera is not ready. Please wait or refresh the page.', 'warning');
+            return;
+        }
+
+        try {
+            // Set canvas dimensions to match video
+            canvas.width = video.videoWidth || 400;
+            canvas.height = video.videoHeight || 300;
+
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convert to base64
+            capturedImageData = canvas.toDataURL('image/jpeg', 0.8);
+            if (!capturedImageData || capturedImageData === 'data:,') {
+                throw new Error('Failed to capture image');
+            }
+
+            // Show captured image
+            video.style.display = 'none';
+            canvas.style.display = 'block';
+            canvas.classList.remove('d-none');
+
+            // Update buttons
+            captureBtn.classList.add('d-none');
+            retakeBtn.classList.remove('d-none');
+            confirmBtn.classList.remove('d-none');
+
+            // Show success message
+            showMessage('Photo captured successfully! Review and confirm or retake if needed.', 'success');
+        } catch (error) {
+            console.error('Error capturing photo:', error);
+            showMessage('Failed to capture photo. Please try again.', 'danger');
+            resetCapture();
+        }
+
+        // Show captured image
+        video.style.display = 'none';
+        canvas.style.display = 'block';
+        canvas.classList.remove('d-none');
+
+        // Update buttons
+        captureBtn.classList.add('d-none');
+        retakeBtn.classList.remove('d-none');
+        confirmBtn.classList.remove('d-none');
+
+        // Show success message
+        showMessage('Photo captured successfully! Review and confirm or retake if needed.', 'success');
+    }
+
+    function retakePhoto() {
+        resetCapture();
+        showMessage('Ready to capture again. Position your face in the center and click capture.', 'info');
+    }
+
+    function confirmCapture() {
+        if (!capturedImageData) {
+            alert('Please capture your face first');
+            return;
+        }
+
+        const identifier = document.getElementById('identifier_hidden').value;
+
+        showLoading(confirmBtn);
+        showMessage('Processing face capture... Please wait.', 'info');
+
+        // Send captured image to server
+        fetch('{{ url_for("enhanced_registration.capture_face_enhanced") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                identifier: identifier,
+                image_data: capturedImageData
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('Face registration successful! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '{{ url_for("enhanced_registration.register_role", role=role) }}?step=4';
+                    }, 1500);
+                } else {
+                    showMessage('Face capture failed: ' + data.message, 'danger');
+                    resetCapture();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Error processing face capture. Please try again.', 'danger');
+                resetCapture();
+            });
+    }
+
+    function resetCapture() {
+        video.style.display = 'block';
+        canvas.style.display = 'none';
+        canvas.classList.add('d-none');
+        captureBtn.classList.remove('d-none');
+        retakeBtn.classList.add('d-none');
+        confirmBtn.classList.add('d-none');
+        hideLoading(confirmBtn, '<i class="fas fa-check me-2"></i>Confirm & Complete Registration');
+    }
+
+    function showLoading(button) {
+        button.disabled = true;
+        button.classList.add('loading-pulse');
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+    }
+
+    function hideLoading(button, originalText) {
+        button.disabled = false;
+        button.classList.remove('loading-pulse');
+        button.innerHTML = originalText;
+    }
+
+    function showMessage(message, type) {
+        // Remove existing messages
+        const existingAlerts = document.querySelectorAll('.alert-temporary');
+        existingAlerts.forEach(alert => alert.remove());
+
+        // Create new alert
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show alert-temporary mt-3`;
+        alertDiv.style.maxWidth = '400px';
+        alertDiv.style.margin = '0 auto';
+        alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+        // Insert after the video container
+        const videoContainer = document.querySelector('.position-relative');
+        videoContainer.parentNode.insertBefore(alertDiv, videoContainer.nextSibling);
+
+        // Auto-dismiss after 5 seconds for non-error messages
+        if (type !== 'danger') {
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+    }
+
+    // Add loading animation styles
+    const style = document.createElement('style');
+    style.textContent = `
+    .loading-pulse {
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+`;
+    document.head.appendChild(style);
+</script>
+{% endif %}
+
+{% if step == 1 %}
+<script>
+    // Password validation
+    document.addEventListener('DOMContentLoaded', function () {
+        const password = document.getElementById('password');
+        const confirmPassword = document.getElementById('confirm_password');
+        const matchText = document.getElementById('password-match-text');
+
+        function validatePassword() {
+            if (password.value && confirmPassword.value) {
+                if (password.value === confirmPassword.value) {
+                    confirmPassword.classList.remove('is-invalid');
+                    confirmPassword.classList.add('is-valid');
+                    matchText.className = 'form-text text-success';
+                    matchText.textContent = 'Passwords match ✓';
+                    return true;
+                } else {
+                    confirmPassword.classList.remove('is-valid');
+                    confirmPassword.classList.add('is-invalid');
+                    matchText.className = 'form-text text-danger';
+                    matchText.textContent = 'Passwords do not match ✗';
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        password.addEventListener('input', validatePassword);
+        confirmPassword.addEventListener('input', validatePassword);
+
+        // Form submission validation
+        document.querySelector('form').addEventListener('submit', function (e) {
+            if (!validatePassword()) {
+                e.preventDefault();
+                alert('Please ensure passwords match before continuing.');
+                return false;
+            }
+        });
+    });
+</script>
+{% endif %}
+
+{% if step == 2 %}
+<script>
+    // Auto-focus on OTP input and validate input
+    const otpInput = document.getElementById('otp_code');
+    otpInput.focus();
+
+    // Only allow numbers
+    otpInput.addEventListener('keypress', function(e) {
+        if (!/[0-9]/.test(e.key)) {
+            e.preventDefault();
+        }
+    });
+
+    // Clean non-numeric characters from pasted content
+    otpInput.addEventListener('paste', function(e) {
+        e.preventDefault();
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+        const cleanNumber = pastedText.replace(/[^0-9]/g, '').slice(0, 6);
+        this.value = cleanNumber;
+        if (cleanNumber.length === 6) {
+            document.getElementById('otpForm').submit();
+        }
+    });
+
+    // Auto-submit when 6 digits entered
+    otpInput.addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);
+        if (this.value.length === 6) {
+            document.getElementById('otpForm').submit();
+        }
+    });
+
+    function resendOTP() {
+        fetch('{{ url_for("enhanced_registration.resend_otp", role=role) }}', {
+            method: 'POST'
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('OTP sent successfully!');
+                } else {
+                    alert('Failed to send OTP: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error sending OTP');
+            });
+    }
+</script>
+{% endif %}
+{% endblock %}

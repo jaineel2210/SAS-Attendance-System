@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Error {{ error_code }} - SecureAttend Pro{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 text-center">
+            <div class="card">
+                <div class="card-body">
+                    <div class="error-icon mb-4">
+                        <i class="fas fa-exclamation-triangle fa-4x text-warning"></i>
+                    </div>
+                    <h1 class="display-4">{{ error_code }}</h1>
+                    <h4 class="mb-3">{{ error_message }}</h4>
+
+                    {% if error_code == 404 %}
+                    <p class="text-muted">The page you're looking for doesn't exist.</p>
+                    {% elif error_code == 500 %}
+                    <p class="text-muted">We're experiencing some technical difficulties. Please try again later.</p>
+                    {% elif error_code == 403 %}
+                    <p class="text-muted">You don't have permission to access this resource.</p>
+                    {% else %}
+                    <p class="text-muted">Something went wrong.</p>
+                    {% endif %}
+
+                    <div class="mt-4">
+                        <a href="{{ url_for('index') }}" class="btn btn-primary me-2">
+                            <i class="fas fa-home me-1"></i>Go Home
+                        </a>
+                        <button onclick="history.back()" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Go Back
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

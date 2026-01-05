@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+
+{% block title %}Timetable - SecureAttend Pro{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Department and Semester Selection -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="department" class="form-label">Department</label>
+                            <select class="form-select" id="department" name="department">
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}" {% if selected_dept == dept.id %}selected{% endif %}>
+                                    {{ dept.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="semester" class="form-label">Semester</label>
+                            <select class="form-select" id="semester" name="semester">
+                                {% for sem in range(1, selected_dept.total_semesters + 1) %}
+                                <option value="{{ sem }}" {% if selected_semester == sem %}selected{% endif %}>
+                                    Semester {{ sem }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">View Schedule</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Quick Info</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Current Time:</strong> <span id="current-time"></span></p>
+                            <p class="mb-1"><strong>Academic Year:</strong> {{ academic_year }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Week Type:</strong> {{ week_type }}</p>
+                            <p class="mb-1"><strong>Next Holiday:</strong> {{ next_holiday.date }} ({{ next_holiday.description }})</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timetable Display -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Weekly Schedule</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Time</th>
+                            {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] %}
+                            <th>{{ day }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for slot in time_slots %}
+                        <tr>
+                            <td class="align-middle">
+                                <strong>{{ slot.slot_name }}</strong><br>
+                                <small class="text-muted">{{ slot.start_time.strftime('%H:%M') }} - {{ slot.end_time.strftime('%H:%M') }}</small>
+                            </td>
+                            {% for day in range(6) %}
+                            {% set schedule = daily_schedules.get((day, slot.id)) %}
+                            <td class="align-middle {% if schedule and schedule.is_current %}table-active{% endif %}">
+                                {% if schedule %}
+                                <div class="d-flex align-items-center">
+                                    <div>
+                                        <strong>{{ schedule.course.code }}</strong><br>
+                                        <small>{{ schedule.course.name }}</small><br>
+                                        <small class="text-muted">
+                                            <i class="fas fa-user-tie"></i> {{ schedule.faculty.first_name }} {{ schedule.faculty.last_name[0] }}.
+                                            <br>
+                                            <i class="fas fa-location-dot"></i> {{ schedule.room.room_number }}
+                                        </small>
+                                    </div>
+                                    {% if schedule.is_current %}
+                                    <span class="badge bg-success ms-auto">Current</span>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Room Availability -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Available Rooms</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Room</th>
+                                    <th>Building</th>
+                                    <th>Capacity</th>
+                                    <th>Features</th>
+                                    <th>Next Class</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for room in available_rooms %}
+                                <tr>
+                                    <td>{{ room.room_number }}</td>
+                                    <td>{{ room.building }}</td>
+                                    <td>{{ room.capacity }}</td>
+                                    <td>
+                                        {% if room.has_projector %}
+                                        <i class="fas fa-projector" title="Projector"></i>
+                                        {% endif %}
+                                        {% if room.has_smart_board %}
+                                        <i class="fas fa-chalkboard" title="Smart Board"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if room.next_class %}
+                                        {{ room.next_class.time_slot.start_time.strftime('%H:%M') }}
+                                        {% else %}
+                                        Free till end of day
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Faculty Schedule</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Faculty</th>
+                                    <th>Current Status</th>
+                                    <th>Next Class</th>
+                                    <th>Location</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for faculty in faculty_schedules %}
+                                <tr>
+                                    <td>
+                                        {{ faculty.first_name }} {{ faculty.last_name }}
+                                        <br>
+                                        <small class="text-muted">{{ faculty.designation }}</small>
+                                    </td>
+                                    <td>
+                                        {% if faculty.current_class %}
+                                        <span class="badge bg-primary">In Class</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Available</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if faculty.next_class %}
+                                        {{ faculty.next_class.course.code }}
+                                        <br>
+                                        <small>{{ faculty.next_class.time_slot.start_time.strftime('%H:%M') }}</small>
+                                        {% else %}
+                                        No more classes today
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if faculty.current_class %}
+                                        {{ faculty.current_class.room.room_number }}
+                                        {% elif faculty.next_class %}
+                                        {{ faculty.next_class.room.room_number }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upcoming Events Modal -->
+<div class="modal fade" id="upcomingEventsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upcoming Academic Events</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="timeline">
+                    {% for event in upcoming_events %}
+                    <div class="timeline-item">
+                        <div class="timeline-date">{{ event.start_date.strftime('%d %b') }}</div>
+                        <div class="timeline-content">
+                            <h6>{{ event.event_name }}</h6>
+                            <p>{{ event.description }}</p>
+                            {% if event.end_date != event.start_date %}
+                            <small class="text-muted">Until {{ event.end_date.strftime('%d %b, %Y') }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Update current time
+    function updateCurrentTime() {
+        const now = new Date();
+        document.getElementById('current-time').textContent = now.toLocaleTimeString();
+    }
+    
+    setInterval(updateCurrentTime, 1000);
+    updateCurrentTime();
+
+    // Highlight current time slot
+    function highlightCurrentTimeSlot() {
+        const now = new Date();
+        const currentTime = now.getHours() * 60 + now.getMinutes();
+        const day = now.getDay() - 1; // -1 because our table starts from Monday (0)
+
+        document.querySelectorAll('tr[data-start-time]').forEach(row => {
+            const startTime = parseInt(row.dataset.startTime);
+            const endTime = parseInt(row.dataset.endTime);
+            
+            if (currentTime >= startTime && currentTime < endTime) {
+                row.classList.add('table-active');
+                if (day >= 0 && day < 6) {
+                    row.cells[day + 1].classList.add('bg-light');
+                }
+            } else {
+                row.classList.remove('table-active');
+                if (day >= 0 && day < 6) {
+                    row.cells[day + 1].classList.remove('bg-light');
+                }
+            }
+        });
+    }
+
+    setInterval(highlightCurrentTimeSlot, 60000);
+    highlightCurrentTimeSlot();
+
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Department change handler
+    document.getElementById('department').addEventListener('change', function() {
+        document.querySelector('form').submit();
+    });
+
+    // Semester change handler
+    document.getElementById('semester').addEventListener('change', function() {
+        document.querySelector('form').submit();
+    });
+</script>
+{% endblock %}
