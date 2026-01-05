@@ -1,3 +1,8 @@
+This project is available under dual licensing:
+
+1. Academic License – Free for learning, research, and educational use
+2. Commercial License – Paid license required for any commercial use
+
 # SecureAttend Pro - Biometric & RFID Attendance Management System
 
 A comprehensive attendance management system combining face recognition, RFID technology, and OTP-based authentication for educational institutions.
