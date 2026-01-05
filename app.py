@@ -1,3 +1,8 @@
+# Copyright © 2025
+# Jaineel Pandya
+# Dhwanil Patel
+# All rights reserved.
+
 # app.py (corrected)
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, Response, make_response, send_from_directory
 from flask_socketio import SocketIO, emit, join_room, leave_room
