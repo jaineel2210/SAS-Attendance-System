@@ -109,7 +109,7 @@ SecureAttend_Pro/
     └── face_images/             # Face recognition images
 ```
 
-## 👥 Team Division (3 Members)
+## 👥 Team Division (Role-Based Contributions)
 
 ### Member 1: Backend & Database Developer
 **Responsibilities:**
@@ -378,7 +378,8 @@ For technical support and queries:
 
 ## 📄 License
 
-This project is developed for educational purposes. All rights reserved.
+This project is primarily intended for academic and research purposes.
+All commercial rights are reserved by the authors.
 
 ---
 
@@ -413,8 +414,8 @@ Dhwanil Patel
 - Company or institutional integration
 
 For commercial usage, contact:
-Jaineel Pandya(Primary Contact)
-Dhwanil Patel(Primary Contact)
+Jaineel Pandya (Primary Contact)
+Dhwanil Patel (Primary Contact)
 Email: jaineelpandya2210@gmail.com
 Email: dhwanilpatel732@gmail.com
 
