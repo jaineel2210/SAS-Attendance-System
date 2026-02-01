@@ -1,5 +1,28 @@
 from flask import Blueprint, render_template, session, redirect, url_for, flash
-from utils.analytics import analytics
+from functools import wraps
+
+# Try to import analytics, use mock if not available
+try:
+    from utils.analytics import analytics
+except ImportError:
+    # Mock analytics class if real one fails to import
+    class MockAnalytics:
+        def get_class_summary(self, user_id, date):
+            return []
+        def get_student_attendance_data(self, user_id):
+            return []
+        def calculate_attendance_percentage(self, user_id):
+            return {'percentage': 0.0, 'total_sessions': 0, 'attended_sessions': 0}
+        def get_subject_wise_attendance(self, user_id):
+            return []
+        def get_weekly_attendance_data(self, user_id):
+            return []
+        def get_monthly_attendance_data(self, user_id):
+            return []
+        def create_attendance_chart(self, data, chart_type):
+            return ""
+    analytics = MockAnalytics()
+
 from utils.safe_query import safe_execute_query
 from database.database import db
 import logging
@@ -8,6 +31,15 @@ import traceback
 logger = logging.getLogger(__name__)
 
 analytics_bp = Blueprint('analytics', __name__)
+
+def login_required(f):
+    """Decorator to require login"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 @analytics_bp.route('/analytics')
 @login_required

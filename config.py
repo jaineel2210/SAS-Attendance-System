@@ -11,6 +11,10 @@ class Config:
     MYSQL_PASSWORD = os.getenv('MYSQL_PASSWORD', '')
     MYSQL_DATABASE = os.getenv('MYSQL_DATABASE', 'attendance_system')
     
+    # Use SQLite in production if MySQL not available
+    USE_SQLITE = os.getenv('USE_SQLITE', 'false').lower() == 'true'
+    DATABASE_URL = os.getenv('DATABASE_URL', '')
+    
     # Flask Configuration
     SECRET_KEY = os.getenv('SECRET_KEY', 'your-super-secret-key-here')
     DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'

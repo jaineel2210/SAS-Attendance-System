@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+
+{% block title %}Performance & Security Testing - SecureAttend Pro{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-tachometer-alt me-2"></i>Performance & Security Testing</h2>
+            <p class="text-muted">System Metrics & Security Validation</p>
+        </div>
+    </div>
+
+    <!-- Run Tests Button -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <button class="btn btn-lg btn-primary" onclick="runAllTests()">
+                <i class="fas fa-play me-2"></i>Run All Tests
+            </button>
+            <span class="ms-3 text-muted" id="testStatus"></span>
+        </div>
+    </div>
+
+    <!-- Performance Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3 id="dbAvg">-- ms</h3>
+                    <p class="mb-0"><i class="fas fa-database me-1"></i>DB Query Avg</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3 id="faceAvg">-- ms</h3>
+                    <p class="mb-0"><i class="fas fa-user-circle me-1"></i>Face Recognition</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3 id="concurrentUsers">--</h3>
+                    <p class="mb-0"><i class="fas fa-users me-1"></i>Concurrent Users</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h3 id="maxResponse">-- ms</h3>
+                    <p class="mb-0"><i class="fas fa-clock me-1"></i>Max Response Time</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Database Performance -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-database me-2"></i>Database Performance
+                </div>
+                <div class="card-body">
+                    <canvas id="dbChart" height="200"></canvas>
+                    <table class="table table-sm mt-3">
+                        <tr><td>Total Tests</td><td id="dbTotal">-</td></tr>
+                        <tr><td>Successful</td><td id="dbSuccess">-</td></tr>
+                        <tr><td>Average Time</td><td id="dbAvgTime">-</td></tr>
+                        <tr><td>Min Time</td><td id="dbMin">-</td></tr>
+                        <tr><td>Max Time</td><td id="dbMax">-</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Face Recognition Performance -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-user-check me-2"></i>Face Recognition Performance
+                </div>
+                <div class="card-body">
+                    <canvas id="faceChart" height="200"></canvas>
+                    <table class="table table-sm mt-3">
+                        <tr><td>Detection Avg</td><td id="faceDetect">-</td></tr>
+                        <tr><td>Extraction Avg</td><td id="faceExtract">-</td></tr>
+                        <tr><td>Tests Run</td><td id="faceTests">-</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Tests -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <i class="fas fa-shield-alt me-2"></i>Security Configuration
+                </div>
+                <div class="card-body">
+                    <div class="row" id="securityChecks">
+                        <div class="col-12 text-center">
+                            <i class="fas fa-spinner fa-spin"></i> Loading security configuration...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Test Details -->
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-secondary text-white">
+                    <i class="fas fa-lock me-2"></i>Login Protection
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Max Login Attempts</span>
+                            <span class="badge bg-primary" id="maxAttempts">5</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Account Lockout</span>
+                            <span class="badge bg-success">Enabled</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Password Hashing</span>
+                            <span class="badge bg-success">bcrypt</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-secondary text-white">
+                    <i class="fas fa-cookie me-2"></i>Session Security
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Session Timeout</span>
+                            <span class="badge bg-info" id="sessionTimeout">30 min</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>HttpOnly Cookies</span>
+                            <span class="badge" id="httpOnly">-</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>SameSite Policy</span>
+                            <span class="badge" id="sameSite">-</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-secondary text-white">
+                    <i class="fas fa-user-shield me-2"></i>Access Control
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Role-Based Access</span>
+                            <span class="badge bg-success">Enabled</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Route Protection</span>
+                            <span class="badge bg-success">Active</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Server Restart Invalidation</span>
+                            <span class="badge bg-success">Enabled</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Results Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-table me-2"></i>Test Results Summary
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Test Category</th>
+                                <th>Metric</th>
+                                <th>Value</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsTable">
+                            <tr><td colspan="4" class="text-center">Run tests to see results</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let dbChart = null;
+let faceChart = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadSecurityConfig();
+});
+
+function runAllTests() {
+    document.getElementById('testStatus').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running tests...';
+    
+    fetch('/api/performance/test')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayResults(data.data);
+                document.getElementById('testStatus').innerHTML = '<i class="fas fa-check text-success"></i> Tests completed!';
+            }
+        })
+        .catch(err => {
+            document.getElementById('testStatus').innerHTML = '<i class="fas fa-times text-danger"></i> Error running tests';
+        });
+}
+
+function displayResults(data) {
+    // Database metrics
+    const db = data.database;
+    document.getElementById('dbTotal').textContent = db.total_tests;
+    document.getElementById('dbSuccess').textContent = db.successful;
+    document.getElementById('dbAvgTime').textContent = db.avg_time_ms + ' ms';
+    document.getElementById('dbMin').textContent = db.min_time_ms + ' ms';
+    document.getElementById('dbMax').textContent = db.max_time_ms + ' ms';
+    document.getElementById('dbAvg').textContent = db.avg_time_ms + ' ms';
+    
+    // Face recognition metrics
+    const face = data.face_recognition;
+    if (face.face_detection) {
+        document.getElementById('faceDetect').textContent = face.face_detection.avg_time_ms + ' ms';
+        document.getElementById('faceExtract').textContent = face.feature_extraction.avg_time_ms + ' ms';
+        document.getElementById('faceTests').textContent = face.face_detection.tests;
+        document.getElementById('faceAvg').textContent = face.face_detection.avg_time_ms + ' ms';
+    }
+    
+    // Concurrent users
+    const concurrent = data.concurrent_users;
+    document.getElementById('concurrentUsers').textContent = concurrent.concurrent_users;
+    document.getElementById('maxResponse').textContent = concurrent.max_response_time_ms + ' ms';
+    
+    // Charts
+    updateCharts(data);
+    updateResultsTable(data);
+}
+
+function updateCharts(data) {
+    // DB Chart
+    const dbCtx = document.getElementById('dbChart').getContext('2d');
+    if (dbChart) dbChart.destroy();
+    
+    dbChart = new Chart(dbCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Avg', 'Min', 'Max'],
+            datasets: [{
+                label: 'Response Time (ms)',
+                data: [data.database.avg_time_ms, data.database.min_time_ms, data.database.max_time_ms],
+                backgroundColor: ['#17a2b8', '#28a745', '#ffc107']
+            }]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+    });
+    
+    // Face Chart
+    const faceCtx = document.getElementById('faceChart').getContext('2d');
+    if (faceChart) faceChart.destroy();
+    
+    if (data.face_recognition.face_detection) {
+        faceChart = new Chart(faceCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Detection', 'Extraction'],
+                datasets: [{
+                    label: 'Time (ms)',
+                    data: [
+                        data.face_recognition.face_detection.avg_time_ms,
+                        data.face_recognition.feature_extraction.avg_time_ms
+                    ],
+                    backgroundColor: ['#28a745', '#17a2b8']
+                }]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        });
+    }
+}
+
+function updateResultsTable(data) {
+    const tbody = document.getElementById('resultsTable');
+    let html = '';
+    
+    // Database results
+    html += `<tr>
+        <td>Database</td>
+        <td>Average Query Time</td>
+        <td>${data.database.avg_time_ms} ms</td>
+        <td><span class="badge ${data.database.avg_time_ms < 100 ? 'bg-success' : 'bg-warning'}">
+            ${data.database.avg_time_ms < 100 ? 'PASS' : 'SLOW'}
+        </span></td>
+    </tr>`;
+    
+    // Face recognition
+    if (data.face_recognition.face_detection) {
+        html += `<tr>
+            <td>Face Recognition</td>
+            <td>Detection Time</td>
+            <td>${data.face_recognition.face_detection.avg_time_ms} ms</td>
+            <td><span class="badge ${data.face_recognition.face_detection.avg_time_ms < 500 ? 'bg-success' : 'bg-warning'}">
+                ${data.face_recognition.face_detection.avg_time_ms < 500 ? 'PASS' : 'SLOW'}
+            </span></td>
+        </tr>`;
+    }
+    
+    // Concurrent users
+    html += `<tr>
+        <td>Concurrent Access</td>
+        <td>Max Response Time (${data.concurrent_users.concurrent_users} users)</td>
+        <td>${data.concurrent_users.max_response_time_ms} ms</td>
+        <td><span class="badge ${data.concurrent_users.max_response_time_ms < 200 ? 'bg-success' : 'bg-warning'}">
+            ${data.concurrent_users.max_response_time_ms < 200 ? 'PASS' : 'ACCEPTABLE'}
+        </span></td>
+    </tr>`;
+    
+    tbody.innerHTML = html;
+}
+
+function loadSecurityConfig() {
+    fetch('/api/security/config')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const config = data.data;
+                
+                document.getElementById('httpOnly').textContent = config.session_cookie_httponly ? 'Yes' : 'No';
+                document.getElementById('httpOnly').className = `badge ${config.session_cookie_httponly ? 'bg-success' : 'bg-danger'}`;
+                
+                document.getElementById('sameSite').textContent = config.session_cookie_samesite || 'Not set';
+                document.getElementById('sameSite').className = `badge ${config.session_cookie_samesite ? 'bg-success' : 'bg-warning'}`;
+                
+                document.getElementById('maxAttempts').textContent = config.max_login_attempts;
+                
+                let checksHtml = '';
+                const checks = [
+                    { name: 'Secret Key Set', value: config.secret_key_set },
+                    { name: 'Debug Mode Off', value: !config.debug_mode },
+                    { name: 'HttpOnly Cookies', value: config.session_cookie_httponly },
+                    { name: 'Session Timeout', value: config.session_timeout !== 'Not set' }
+                ];
+                
+                checks.forEach(check => {
+                    checksHtml += `<div class="col-md-3 mb-2">
+                        <div class="alert ${check.value ? 'alert-success' : 'alert-warning'} mb-0 text-center">
+                            <i class="fas ${check.value ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-2"></i>
+                            ${check.name}
+                        </div>
+                    </div>`;
+                });
+                
+                document.getElementById('securityChecks').innerHTML = checksHtml;
+            }
+        });
+}
+</script>
+{% endblock %}

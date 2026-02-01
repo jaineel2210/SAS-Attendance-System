@@ -1,0 +1,24 @@
+# Render.com Deployment Configuration
+# https://render.com/docs/yaml-spec
+
+services:
+  - type: web
+    name: sas-attendance-system
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: gunicorn wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 120
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+      - key: USE_SQLITE
+        value: "true"
+    healthCheckPath: /health
+    autoDeploy: true

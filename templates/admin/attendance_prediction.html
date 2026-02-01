@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Prediction - SecureAttend Pro{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-brain me-2"></i>Attendance Prediction (ML)</h2>
+            <p class="text-muted">AI-based Risk Assessment using Logistic Regression</p>
+        </div>
+    </div>
+
+    <!-- Class Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3 id="safeCount">0</h3>
+                    <p class="mb-0"><i class="fas fa-check-circle me-1"></i>Safe</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h3 id="warningCount">0</h3>
+                    <p class="mb-0"><i class="fas fa-exclamation-triangle me-1"></i>Warning</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h3 id="criticalCount">0</h3>
+                    <p class="mb-0"><i class="fas fa-times-circle me-1"></i>Critical</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3 id="avgAttendance">--%</h3>
+                    <p class="mb-0"><i class="fas fa-chart-line me-1"></i>Avg Attendance</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Risk Distribution Chart -->
+        <div class="col-md-5 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-chart-pie me-2"></i>Risk Distribution
+                </div>
+                <div class="card-body">
+                    <canvas id="riskChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- At-Risk Students -->
+        <div class="col-md-7 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-danger text-white d-flex justify-content-between">
+                    <span><i class="fas fa-user-times me-2"></i>At-Risk Students</span>
+                    <button class="btn btn-sm btn-light" onclick="loadAtRiskStudents()">
+                        <i class="fas fa-sync"></i>
+                    </button>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    <div id="atRiskList">
+                        <div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Risk Details -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-search me-2"></i>Check Individual Student Risk
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="number" id="studentId" class="form-control" placeholder="Enter Student ID">
+                                <button class="btn btn-primary" onclick="checkStudentRisk()">
+                                    <i class="fas fa-search"></i> Check Risk
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="studentRiskResult" class="d-none">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card" id="riskCard">
+                                    <div class="card-body text-center">
+                                        <h2 id="riskLevel">--</h2>
+                                        <p id="riskMessage">-</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5>Current Stats</h5>
+                                        <p><strong>Attendance:</strong> <span id="currentAttendance">--</span>%</p>
+                                        <p><strong>Sessions:</strong> <span id="sessions">-/-</span></p>
+                                        <p><strong>Absent Streak:</strong> <span id="streak">-</span> days</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5>Required to Reach 75%</h5>
+                                        <p class="display-6 text-primary" id="requiredFuture">--%</p>
+                                        <small class="text-muted">Attendance in remaining sessions</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header bg-info text-white">
+                                        <i class="fas fa-lightbulb me-2"></i>Recommendations
+                                    </div>
+                                    <div class="card-body">
+                                        <ul class="list-group" id="recommendations"></ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Info -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <i class="fas fa-cogs me-2"></i>Prediction Model Info
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Model Details</h5>
+                            <ul>
+                                <li><strong>Algorithm:</strong> Logistic Regression / Rule-based Hybrid</li>
+                                <li><strong>Features Used:</strong>
+                                    <ul>
+                                        <li>Current attendance percentage</li>
+                                        <li>Number of absences</li>
+                                        <li>Recent attendance trend (last 2 weeks)</li>
+                                        <li>Consecutive absent days (streak)</li>
+                                        <li>Late arrival count</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Target:</strong> Probability of falling below 75%</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Risk Level Thresholds</h5>
+                            <div class="progress mb-2" style="height: 30px;">
+                                <div class="progress-bar bg-success" style="width: 20%">Safe (≥80%)</div>
+                                <div class="progress-bar bg-warning" style="width: 15%">Warning (70-79%)</div>
+                                <div class="progress-bar bg-danger" style="width: 65%">Critical (&lt;70%)</div>
+                            </div>
+                            <button class="btn btn-outline-primary mt-3" onclick="trainModel()">
+                                <i class="fas fa-graduation-cap me-2"></i>Retrain Model
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let riskChart = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadClassSummary();
+    loadAtRiskStudents();
+});
+
+function loadClassSummary() {
+    fetch('/api/prediction/class-summary')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const summary = data.data;
+                document.getElementById('safeCount').textContent = summary.safe || 0;
+                document.getElementById('warningCount').textContent = summary.warning || 0;
+                document.getElementById('criticalCount').textContent = summary.critical || 0;
+                document.getElementById('avgAttendance').textContent = summary.average_attendance + '%';
+                
+                // Risk chart
+                const ctx = document.getElementById('riskChart').getContext('2d');
+                if (riskChart) riskChart.destroy();
+                
+                riskChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Safe', 'Warning', 'Critical'],
+                        datasets: [{
+                            data: [summary.safe || 0, summary.warning || 0, summary.critical || 0],
+                            backgroundColor: ['#28a745', '#ffc107', '#dc3545']
+                        }]
+                    },
+                    options: { responsive: true }
+                });
+            }
+        });
+}
+
+function loadAtRiskStudents() {
+    fetch('/api/prediction/at-risk')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('atRiskList');
+            
+            if (!data.success || data.students.length === 0) {
+                container.innerHTML = '<div class="text-center text-success"><i class="fas fa-check-circle me-2"></i>No at-risk students!</div>';
+                return;
+            }
+            
+            let html = '<div class="list-group">';
+            data.students.forEach(s => {
+                const riskClass = s.risk_level === 'CRITICAL' ? 'danger' : 'warning';
+                html += `<div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">${s.name}</h6>
+                            <small class="text-muted">${s.enrollment_no}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-${riskClass}">${s.risk_level}</span>
+                            <br><small>${s.current_attendance}% attendance</small>
+                        </div>
+                    </div>
+                    <small class="text-muted">${s.message}</small>
+                </div>`;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        });
+}
+
+function checkStudentRisk() {
+    const studentId = document.getElementById('studentId').value;
+    if (!studentId) return alert('Please enter a student ID');
+    
+    fetch(`/api/prediction/student/${studentId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const result = data.data;
+                document.getElementById('studentRiskResult').classList.remove('d-none');
+                
+                const riskCard = document.getElementById('riskCard');
+                const riskColors = { SAFE: 'success', WARNING: 'warning', CRITICAL: 'danger' };
+                riskCard.className = `card bg-${riskColors[result.risk_level]} text-white`;
+                
+                document.getElementById('riskLevel').textContent = result.risk_level;
+                document.getElementById('riskMessage').textContent = result.message;
+                document.getElementById('currentAttendance').textContent = result.current_attendance;
+                document.getElementById('sessions').textContent = `${result.sessions_attended}/${result.total_sessions}`;
+                document.getElementById('streak').textContent = result.absent_streak;
+                document.getElementById('requiredFuture').textContent = result.required_future_attendance + '%';
+                
+                let recsHtml = '';
+                result.recommendations.forEach(r => {
+                    const priorityClass = { HIGH: 'danger', MEDIUM: 'warning', LOW: 'info' }[r.priority];
+                    recsHtml += `<li class="list-group-item">
+                        <span class="badge bg-${priorityClass} me-2">${r.priority}</span>
+                        <strong>${r.action}</strong><br>
+                        <small class="text-muted">${r.reason}</small>
+                    </li>`;
+                });
+                document.getElementById('recommendations').innerHTML = recsHtml || '<li class="list-group-item">No specific recommendations</li>';
+            } else {
+                alert(data.message || 'Student not found');
+            }
+        });
+}
+
+function trainModel() {
+    if (!confirm('Retrain the prediction model with current data?')) return;
+    
+    fetch('/api/prediction/train', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            if (data.success) {
+                loadClassSummary();
+                loadAtRiskStudents();
+            }
+        });
+}
+</script>
+{% endblock %}

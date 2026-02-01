@@ -1,0 +1,53 @@
+# Ignore Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+logs/
+*.log
+
+# Local config
+.env
+.env.local
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
+
+# Node modules (if any frontend build)
+node_modules/
+
+# Documentation markdown (not needed in container)
+*.md
+!README.md
+
+# Test files
+test_*.py
+*_test.py
+
+# Database files
+*.db
+*.sqlite

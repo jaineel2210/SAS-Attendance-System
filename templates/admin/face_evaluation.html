@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}Face Recognition Evaluation - SecureAttend Pro{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-microscope me-2"></i>Face Recognition Evaluation</h2>
+            <p class="text-muted">AI/ML Accuracy Testing & Optimization</p>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3 id="accuracy">--</h3>
+                    <p class="mb-0">Accuracy %</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h3 id="far">--</h3>
+                    <p class="mb-0">False Acceptance Rate</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h3 id="frr">--</h3>
+                    <p class="mb-0">False Rejection Rate</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3 id="optimalTolerance">--</h3>
+                    <p class="mb-0">Optimal Tolerance</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Tolerance Optimization -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-sliders-h me-2"></i>Tolerance Optimization
+                </div>
+                <div class="card-body">
+                    <canvas id="toleranceChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lighting Conditions -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-lightbulb me-2"></i>Lighting Condition Testing
+                </div>
+                <div class="card-body">
+                    <canvas id="lightingChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Single vs Multiple Images -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-images me-2"></i>Single vs Multiple Images
+                </div>
+                <div class="card-body">
+                    <canvas id="comparisonChart" height="200"></canvas>
+                    <div class="mt-3">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Finding:</strong> Using multiple images per student improves recognition accuracy by <span id="improvement">--</span>%
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results Table -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-table me-2"></i>Detailed Test Results
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered table-sm">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Tolerance</th>
+                                <th>Accuracy</th>
+                                <th>FAR</th>
+                                <th>FRR</th>
+                            </tr>
+                        </thead>
+                        <tbody id="toleranceResults">
+                            <tr><td colspan="4" class="text-center">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-check-circle me-2"></i>Recommendations
+                </div>
+                <div class="card-body">
+                    <ul class="list-group" id="recommendations">
+                        <li class="list-group-item"><i class="fas fa-spinner fa-spin me-2"></i>Loading recommendations...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadTestResults();
+    loadToleranceOptimization();
+});
+
+function loadTestResults() {
+    fetch('/api/face/test-results')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const results = data.data;
+                
+                // Update summary cards
+                document.getElementById('accuracy').textContent = results.accuracy + '%';
+                document.getElementById('far').textContent = results.far + '%';
+                document.getElementById('frr').textContent = results.frr + '%';
+                document.getElementById('improvement').textContent = results.single_vs_multiple.improvement;
+                
+                // Lighting chart
+                const lightingCtx = document.getElementById('lightingChart').getContext('2d');
+                new Chart(lightingCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Bright', 'Normal', 'Dim', 'Dark'],
+                        datasets: [{
+                            label: 'Accuracy %',
+                            data: [
+                                results.lighting_test.bright.accuracy,
+                                results.lighting_test.normal.accuracy,
+                                results.lighting_test.dim.accuracy,
+                                results.lighting_test.dark.accuracy
+                            ],
+                            backgroundColor: ['#28a745', '#17a2b8', '#ffc107', '#dc3545']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { y: { beginAtZero: true, max: 100 } }
+                    }
+                });
+                
+                // Comparison chart
+                const compCtx = document.getElementById('comparisonChart').getContext('2d');
+                new Chart(compCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Single Image', 'Multiple Images'],
+                        datasets: [{
+                            data: [
+                                results.single_vs_multiple.single_image_accuracy,
+                                results.single_vs_multiple.multiple_images_accuracy
+                            ],
+                            backgroundColor: ['#6c757d', '#28a745']
+                        }]
+                    }
+                });
+                
+                // Recommendations
+                let recsHtml = '';
+                results.recommendations.forEach(rec => {
+                    recsHtml += `<li class="list-group-item"><i class="fas fa-check text-success me-2"></i>${rec}</li>`;
+                });
+                document.getElementById('recommendations').innerHTML = recsHtml;
+            }
+        });
+}
+
+function loadToleranceOptimization() {
+    fetch('/api/face/optimize-tolerance')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const results = data.data;
+                
+                document.getElementById('optimalTolerance').textContent = results.optimal_tolerance;
+                
+                // Tolerance chart
+                const ctx = document.getElementById('toleranceChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: results.all_results.map(r => r.tolerance),
+                        datasets: [{
+                            label: 'Accuracy',
+                            data: results.all_results.map(r => r.accuracy),
+                            borderColor: '#28a745',
+                            fill: false
+                        }, {
+                            label: 'FAR',
+                            data: results.all_results.map(r => r.far),
+                            borderColor: '#dc3545',
+                            fill: false
+                        }, {
+                            label: 'FRR',
+                            data: results.all_results.map(r => r.frr),
+                            borderColor: '#ffc107',
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+                
+                // Table
+                let tableHtml = '';
+                results.all_results.forEach(r => {
+                    const isOptimal = r.tolerance === results.optimal_tolerance;
+                    tableHtml += `<tr class="${isOptimal ? 'table-success' : ''}">
+                        <td>${r.tolerance}${isOptimal ? ' ⭐' : ''}</td>
+                        <td>${r.accuracy}%</td>
+                        <td>${r.far}%</td>
+                        <td>${r.frr}%</td>
+                    </tr>`;
+                });
+                document.getElementById('toleranceResults').innerHTML = tableHtml;
+            }
+        });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,521 @@
+{% extends "base.html" %}
+
+{% block title %}System Documentation - SecureAttend Pro{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-book me-2"></i>System Documentation & Architecture</h2>
+            <p class="text-muted">Technical Documentation, Diagrams & API Reference</p>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs mb-4" id="docTabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" id="arch-tab" data-bs-toggle="tab" href="#architecture">System Architecture</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="dataflow-tab" data-bs-toggle="tab" href="#dataflow">Data Flow</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="auth-tab" data-bs-toggle="tab" href="#authflow">Authentication Flow</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="attend-tab" data-bs-toggle="tab" href="#attendflow">Attendance Flow</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="api-tab" data-bs-toggle="tab" href="#apiref">API Reference</a>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="docTabContent">
+        
+        <!-- System Architecture -->
+        <div class="tab-pane fade show active" id="architecture" role="tabpanel">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-sitemap me-2"></i>System Architecture Diagram
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <pre class="bg-light p-4 text-start" style="font-family: monospace; font-size: 12px;">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           SECUREATTEND PRO ARCHITECTURE                          │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐         │
+│   │   Admin     │   │   Faculty   │   │   Student   │   │   Mobile    │         │
+│   │   Browser   │   │   Browser   │   │   Browser   │   │   Device    │         │
+│   └──────┬──────┘   └──────┬──────┘   └──────┬──────┘   └──────┬──────┘         │
+│          │                 │                 │                 │                │
+│          └────────────────┬┴─────────────────┴─────────────────┘                │
+│                           │                                                      │
+│                    ┌──────▼──────┐                                              │
+│                    │   NGINX     │  (Reverse Proxy / Load Balancer)             │
+│                    └──────┬──────┘                                              │
+│                           │                                                      │
+│                    ┌──────▼──────┐                                              │
+│                    │  GUNICORN   │  (WSGI Server)                               │
+│                    │  Workers    │                                              │
+│                    └──────┬──────┘                                              │
+│                           │                                                      │
+│  ┌────────────────────────▼────────────────────────┐                            │
+│  │              FLASK APPLICATION                   │                            │
+│  │  ┌─────────────────────────────────────────────┐│                            │
+│  │  │           Routes / Controllers              ││                            │
+│  │  │  • Auth Routes    • Attendance Routes       ││                            │
+│  │  │  • Analytics      • Major Features          ││                            │
+│  │  │  • Timetable      • API Documentation       ││                            │
+│  │  └─────────────────────────────────────────────┘│                            │
+│  │  ┌─────────────────────────────────────────────┐│                            │
+│  │  │              Services Layer                  ││                            │
+│  │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐     ││                            │
+│  │  │  │   Face   │ │  Anomaly │ │Prediction│     ││                            │
+│  │  │  │Processor │ │ Detector │ │  Model   │     ││                            │
+│  │  │  └──────────┘ └──────────┘ └──────────┘     ││                            │
+│  │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐     ││                            │
+│  │  │  │   OTP    │ │    QR    │ │   RFID   │     ││                            │
+│  │  │  │ Service  │ │ Service  │ │  Reader  │     ││                            │
+│  │  │  └──────────┘ └──────────┘ └──────────┘     ││                            │
+│  │  └─────────────────────────────────────────────┘│                            │
+│  │  ┌─────────────────────────────────────────────┐│                            │
+│  │  │           Database Layer (PyMySQL)          ││                            │
+│  │  └─────────────────────────────────────────────┘│                            │
+│  └─────────────────────────────────────────────────┘                            │
+│                           │                                                      │
+│          ┌────────────────┼────────────────┐                                    │
+│          ▼                ▼                ▼                                    │
+│   ┌────────────┐   ┌────────────┐   ┌────────────┐                             │
+│   │   MySQL    │   │   Redis    │   │    File    │                             │
+│   │  Database  │   │   Cache    │   │   Storage  │                             │
+│   └────────────┘   └────────────┘   └────────────┘                             │
+│                                                                                  │
+│  External Services:                                                              │
+│   ┌────────────┐   ┌────────────┐   ┌────────────┐                             │
+│   │   Twilio   │   │  OpenCV/   │   │   RFID     │                             │
+│   │    SMS     │   │face_recog  │   │  Hardware  │                             │
+│   └────────────┘   └────────────┘   └────────────┘                             │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                        </pre>
+                    </div>
+                    
+                    <h5>Technology Stack</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="text-primary">Frontend</h6>
+                                    <ul class="mb-0">
+                                        <li>HTML5/CSS3</li>
+                                        <li>Bootstrap 5</li>
+                                        <li>JavaScript (ES6+)</li>
+                                        <li>Chart.js</li>
+                                        <li>Jinja2 Templates</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="text-success">Backend</h6>
+                                    <ul class="mb-0">
+                                        <li>Python 3.11</li>
+                                        <li>Flask 2.3.3</li>
+                                        <li>Flask-SocketIO</li>
+                                        <li>Gunicorn</li>
+                                        <li>OpenCV/face_recognition</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="text-danger">Database & ML</h6>
+                                    <ul class="mb-0">
+                                        <li>MySQL</li>
+                                        <li>PyMySQL</li>
+                                        <li>scikit-learn</li>
+                                        <li>NumPy/Pandas</li>
+                                        <li>Pickle (Models)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Flow -->
+        <div class="tab-pane fade" id="dataflow" role="tabpanel">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-exchange-alt me-2"></i>Data Flow Diagram
+                </div>
+                <div class="card-body">
+                    <pre class="bg-light p-4" style="font-family: monospace; font-size: 12px;">
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          DATA FLOW DIAGRAM                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                    ┌──────────────────┐
+                    │     USER         │
+                    │  (Admin/Faculty/ │
+                    │    Student)      │
+                    └────────┬─────────┘
+                             │
+              ┌──────────────┼──────────────┐
+              ▼              ▼              ▼
+     ┌────────────┐  ┌────────────┐  ┌────────────┐
+     │   Login    │  │ Register   │  │  Attend    │
+     │  Request   │  │  Request   │  │  Request   │
+     └──────┬─────┘  └──────┬─────┘  └──────┬─────┘
+            │               │               │
+            ▼               ▼               ▼
+     ┌─────────────────────────────────────────────┐
+     │            INPUT VALIDATION                  │
+     │   • Sanitize inputs                          │
+     │   • Validate format                          │
+     │   • Check required fields                    │
+     └────────────────────┬────────────────────────┘
+                          │
+            ┌─────────────┴─────────────┐
+            ▼                           ▼
+   ┌─────────────────┐         ┌─────────────────┐
+   │  AUTHENTICATION │         │   BIOMETRIC     │
+   │    SERVICE      │         │   PROCESSING    │
+   │  • bcrypt hash  │         │  • Face detect  │
+   │  • Session mgmt │         │  • Face encode  │
+   │  • OTP verify   │         │  • RFID read    │
+   └────────┬────────┘         └────────┬────────┘
+            │                           │
+            └─────────────┬─────────────┘
+                          ▼
+     ┌─────────────────────────────────────────────┐
+     │              DATABASE LAYER                  │
+     │  ┌─────────┐ ┌─────────┐ ┌─────────┐       │
+     │  │  users  │ │attendance│ │ sessions│       │
+     │  └─────────┘ └─────────┘ └─────────┘       │
+     └────────────────────┬────────────────────────┘
+                          │
+            ┌─────────────┴─────────────┐
+            ▼                           ▼
+   ┌─────────────────┐         ┌─────────────────┐
+   │    ANALYTICS    │         │    ANOMALY      │
+   │    ENGINE       │         │   DETECTION     │
+   │  • Stats calc   │         │  • Pattern check│
+   │  • Percentage   │         │  • Flag issues  │
+   │  • Trends       │         │  • Alert admin  │
+   └────────┬────────┘         └────────┬────────┘
+            │                           │
+            └─────────────┬─────────────┘
+                          ▼
+     ┌─────────────────────────────────────────────┐
+     │            ML PREDICTION MODEL               │
+     │  • Risk assessment (Logistic Regression)     │
+     │  • Feature extraction                        │
+     │  • Probability calculation                   │
+     └────────────────────┬────────────────────────┘
+                          │
+                          ▼
+     ┌─────────────────────────────────────────────┐
+     │              RESPONSE LAYER                  │
+     │  • JSON API responses                        │
+     │  • HTML template rendering                   │
+     │  • WebSocket real-time updates               │
+     └─────────────────────────────────────────────┘
+                        </pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Authentication Flow -->
+        <div class="tab-pane fade" id="authflow" role="tabpanel">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-key me-2"></i>Authentication Flow Diagram
+                </div>
+                <div class="card-body">
+                    <pre class="bg-light p-4" style="font-family: monospace; font-size: 12px;">
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     AUTHENTICATION FLOW                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                          START
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │  User visits  │
+                    │  Login Page   │
+                    └───────┬───────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │ Enter Creds   │
+                    │ Username/Pwd  │
+                    └───────┬───────┘
+                            │
+                            ▼
+                   ┌────────────────┐
+                   │ Check Login    │
+                   │   Attempts     │◄─────────────────────────┐
+                   └───────┬────────┘                          │
+                           │                                   │
+              ┌────────────┴────────────┐                      │
+              ▼                         ▼                      │
+       ┌────────────┐           ┌────────────┐                │
+       │ < 5 tries  │           │ >= 5 tries │                │
+       └─────┬──────┘           └─────┬──────┘                │
+             │                        │                        │
+             ▼                        ▼                        │
+      ┌────────────┐          ┌────────────┐                  │
+      │  Verify    │          │  BLOCKED   │                  │
+      │  Password  │          │  30 mins   │                  │
+      │  (bcrypt)  │          └────────────┘                  │
+      └─────┬──────┘                                          │
+            │                                                  │
+       ┌────┴────┐                                            │
+       ▼         ▼                                            │
+   ┌───────┐ ┌───────┐                                        │
+   │VALID  │ │INVALID│────────────────────────────────────────┘
+   └───┬───┘ └───────┘
+       │
+       ▼
+┌──────────────┐
+│ Check Role   │
+└──────┬───────┘
+       │
+       ├─────────────────┬─────────────────┐
+       ▼                 ▼                 ▼
+┌────────────┐   ┌────────────┐   ┌────────────┐
+│   ADMIN    │   │  FACULTY   │   │  STUDENT   │
+└─────┬──────┘   └─────┬──────┘   └─────┬──────┘
+      │                │                │
+      ▼                ▼                ▼
+┌────────────┐   ┌────────────┐   ┌────────────┐
+│  Create    │   │  Create    │   │  Create    │
+│  Session   │   │  Session   │   │  Session   │
+│  + Server  │   │  + Server  │   │  + Server  │
+│  Instance  │   │  Instance  │   │  Instance  │
+│     ID     │   │     ID     │   │     ID     │
+└─────┬──────┘   └─────┬──────┘   └─────┬──────┘
+      │                │                │
+      ▼                ▼                ▼
+┌────────────┐   ┌────────────┐   ┌────────────┐
+│   Admin    │   │  Faculty   │   │  Student   │
+│ Dashboard  │   │ Dashboard  │   │ Dashboard  │
+└────────────┘   └────────────┘   └────────────┘
+
+                 SESSION VALIDATION
+                 ─────────────────
+            On each request:
+            1. Check session exists
+            2. Verify server instance ID matches
+            3. Check session timeout (30 min)
+            4. If invalid → Redirect to login
+                        </pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Flow -->
+        <div class="tab-pane fade" id="attendflow" role="tabpanel">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-user-check me-2"></i>Attendance Marking Flow
+                </div>
+                <div class="card-body">
+                    <pre class="bg-light p-4" style="font-family: monospace; font-size: 12px;">
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   ATTENDANCE MARKING FLOW                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    FACULTY INITIATES SESSION
+              │
+              ▼
+      ┌───────────────┐
+      │ Select Method │
+      └───────┬───────┘
+              │
+    ┌─────────┼─────────┬─────────┐
+    ▼         ▼         ▼         ▼
+┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐
+│ FACE  │ │  QR   │ │ RFID  │ │MANUAL │
+└───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘
+    │         │         │         │
+    ▼         ▼         ▼         ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                          │
+│  FACE RECOGNITION        QR CODE              RFID              MANUAL  │
+│  ───────────────        ────────              ────              ──────  │
+│                                                                          │
+│  ┌──────────┐       ┌──────────┐        ┌──────────┐      ┌──────────┐ │
+│  │ Camera   │       │ Generate │        │ Tap Card │      │ Select   │ │
+│  │ Capture  │       │ QR Code  │        │ on Reader│      │ Students │ │
+│  └────┬─────┘       └────┬─────┘        └────┬─────┘      └────┬─────┘ │
+│       │                  │                   │                  │       │
+│       ▼                  ▼                   ▼                  │       │
+│  ┌──────────┐       ┌──────────┐        ┌──────────┐           │       │
+│  │ Detect   │       │ Student  │        │ Read UID │           │       │
+│  │  Face    │       │  Scans   │        │ Serial   │           │       │
+│  └────┬─────┘       └────┬─────┘        └────┬─────┘           │       │
+│       │                  │                   │                  │       │
+│       ▼                  ▼                   ▼                  │       │
+│  ┌──────────┐       ┌──────────┐        ┌──────────┐           │       │
+│  │ Extract  │       │ Verify   │        │  Match   │           │       │
+│  │ Encoding │       │ QR Data  │        │ in DB    │           │       │
+│  └────┬─────┘       │ + Expiry │        └────┬─────┘           │       │
+│       │             └────┬─────┘             │                  │       │
+│       ▼                  │                   │                  │       │
+│  ┌──────────┐            │                   │                  │       │
+│  │ Compare  │            │                   │                  │       │
+│  │ with DB  │            │                   │                  │       │
+│  │(tolerance│            │                   │                  │       │
+│  │  0.5)    │            │                   │                  │       │
+│  └────┬─────┘            │                   │                  │       │
+│       │                  │                   │                  │       │
+└───────┼──────────────────┼───────────────────┼──────────────────┼───────┘
+        │                  │                   │                  │
+        └──────────────────┴───────────────────┴──────────────────┘
+                                   │
+                                   ▼
+                           ┌──────────────┐
+                           │ VALIDATION   │
+                           │ • Check user │
+                           │ • Check time │
+                           │ • Check dup  │
+                           └──────┬───────┘
+                                  │
+                    ┌─────────────┴─────────────┐
+                    ▼                           ▼
+              ┌──────────┐               ┌──────────┐
+              │  VALID   │               │ INVALID  │
+              └────┬─────┘               └────┬─────┘
+                   │                          │
+                   ▼                          ▼
+              ┌──────────┐               ┌──────────┐
+              │  Insert  │               │  Return  │
+              │ Attendance│              │  Error   │
+              │  Record  │               └──────────┘
+              └────┬─────┘
+                   │
+                   ▼
+              ┌──────────┐
+              │ ANOMALY  │
+              │ DETECTION│
+              │  Check   │
+              └────┬─────┘
+                   │
+                   ▼
+              ┌──────────┐
+              │ Real-time│
+              │  Update  │
+              │(SocketIO)│
+              └──────────┘
+                        </pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Reference -->
+        <div class="tab-pane fade" id="apiref" role="tabpanel">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-code me-2"></i>API Reference (Swagger)
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Full interactive API documentation available at: <a href="/api/v1/docs" target="_blank">/api/v1/docs</a>
+                    </div>
+                    
+                    <h5>Key API Endpoints</h5>
+                    
+                    <!-- Authentication APIs -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-primary text-white">Authentication</div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+                                <tbody>
+                                    <tr><td><span class="badge bg-success">POST</span></td><td><code>/api/v1/auth/login</code></td><td>User login</td></tr>
+                                    <tr><td><span class="badge bg-success">POST</span></td><td><code>/api/v1/auth/logout</code></td><td>User logout</td></tr>
+                                    <tr><td><span class="badge bg-success">POST</span></td><td><code>/api/v1/auth/send-otp</code></td><td>Send OTP</td></tr>
+                                    <tr><td><span class="badge bg-success">POST</span></td><td><code>/api/v1/auth/verify-otp</code></td><td>Verify OTP</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Attendance APIs -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-success text-white">Attendance</div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+                                <tbody>
+                                    <tr><td><span class="badge bg-success">POST</span></td><td><code>/api/v1/attendance/mark</code></td><td>Mark attendance</td></tr>
+                                    <tr><td><span class="badge bg-success">POST</span></td><td><code>/api/v1/attendance/qr-scan</code></td><td>QR code attendance</td></tr>
+                                    <tr><td><span class="badge bg-primary">GET</span></td><td><code>/api/v1/attendance/student/{id}</code></td><td>Student records</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Face Recognition APIs -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-info text-white">Face Recognition</div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+                                <tbody>
+                                    <tr><td><span class="badge bg-success">POST</span></td><td><code>/api/face/capture</code></td><td>Capture face</td></tr>
+                                    <tr><td><span class="badge bg-success">POST</span></td><td><code>/api/face/verify</code></td><td>Verify face</td></tr>
+                                    <tr><td><span class="badge bg-primary">GET</span></td><td><code>/api/face/evaluation</code></td><td>Get evaluation metrics</td></tr>
+                                    <tr><td><span class="badge bg-primary">GET</span></td><td><code>/api/face/optimize-tolerance</code></td><td>Optimize tolerance</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Anomaly Detection APIs -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-danger text-white">Anomaly Detection</div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+                                <tbody>
+                                    <tr><td><span class="badge bg-primary">GET</span></td><td><code>/api/anomaly/detect</code></td><td>Detect anomalies</td></tr>
+                                    <tr><td><span class="badge bg-primary">GET</span></td><td><code>/api/anomaly/summary</code></td><td>Get summary</td></tr>
+                                    <tr><td><span class="badge bg-primary">GET</span></td><td><code>/api/anomaly/suspicious-students</code></td><td>Suspicious students</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Prediction APIs -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-warning text-dark">Attendance Prediction (ML)</div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+                                <tbody>
+                                    <tr><td><span class="badge bg-primary">GET</span></td><td><code>/api/prediction/student/{id}</code></td><td>Student risk</td></tr>
+                                    <tr><td><span class="badge bg-primary">GET</span></td><td><code>/api/prediction/at-risk</code></td><td>All at-risk students</td></tr>
+                                    <tr><td><span class="badge bg-primary">GET</span></td><td><code>/api/prediction/class-summary</code></td><td>Class summary</td></tr>
+                                    <tr><td><span class="badge bg-success">POST</span></td><td><code>/api/prediction/train</code></td><td>Train model</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -2,8 +2,8 @@
 Simple test script to verify database connectivity
 """
 
-import mysql.connector
-from mysql.connector import Error
+import pymysql
+from pymysql import Error
 import os
 from dotenv import load_dotenv
 
@@ -20,21 +20,22 @@ def test_mysql_connection():
     print(f"User: {user}")
     print(f"Password: {'*' * len(password)}")
     
-    # Method 1: Try with auth_plugin
+    # Try with pymysql
     try:
-        connection = mysql.connector.connect(
+        connection = pymysql.connect(
             host=host,
             user=user,
             password=password,
-            auth_plugin='mysql_native_password'
+            charset='utf8mb4'
         )
         
-        if connection.is_connected():
-            db_info = connection.get_server_info()
-            print(f"✅ Connected successfully to MySQL server version {db_info}")
-            
+        if connection.open:
             cursor = connection.cursor()
-            cursor.execute("SELECT DATABASE();")
+            cursor.execute("SELECT VERSION()")
+            db_info = cursor.fetchone()
+            print(f"✅ Connected successfully to MySQL server version {db_info[0]}")
+            
+            cursor.execute("SELECT DATABASE()")
             record = cursor.fetchone()
             print(f"✅ Current database: {record}")
             
@@ -48,36 +49,7 @@ def test_mysql_connection():
             return True
             
     except Error as e:
-        print(f"❌ Method 1 failed: {e}")
-    
-    # Method 2: Try without auth_plugin
-    try:
-        connection = mysql.connector.connect(
-            host=host,
-            user=user,
-            password=password
-        )
-        
-        if connection.is_connected():
-            db_info = connection.get_server_info()
-            print(f"✅ Connected successfully to MySQL server version {db_info}")
-            
-            cursor = connection.cursor()
-            cursor.execute("SELECT DATABASE();")
-            record = cursor.fetchone()
-            print(f"✅ Current database: {record}")
-            
-            # Try to create database
-            cursor.execute("CREATE DATABASE IF NOT EXISTS attendance_system")
-            print("✅ Database 'attendance_system' created or already exists")
-            
-            cursor.close()
-            connection.close()
-            print("✅ MySQL connection test passed!")
-            return True
-            
-    except Error as e:
-        print(f"❌ Method 2 failed: {e}")
+        print(f"❌ Connection failed: {e}")
     
     print("❌ All connection methods failed!")
     print("\n🔧 Troubleshooting:")

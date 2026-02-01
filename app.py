@@ -35,6 +35,9 @@ import logging
 import hashlib
 from functools import wraps
 
+# Import major feature routes
+from routes.major_features import major_features
+
 # Temporary mock analytics class (kept as-is since original file provided it)
 class MockAnalytics:
     def get_class_summary(self, user_id, date):
@@ -86,6 +89,9 @@ logger.info(f"Server started with instance ID: {SERVER_INSTANCE_ID}")
 # Ensure upload directories exist (use config values if present)
 os.makedirs(app.config.get('UPLOAD_FOLDER', 'uploads'), exist_ok=True)
 os.makedirs(app.config.get('FACE_IMAGES_FOLDER', 'face_images'), exist_ok=True)
+os.makedirs('static/evaluation_reports', exist_ok=True)
+os.makedirs('static/test_reports', exist_ok=True)
+os.makedirs('static/models', exist_ok=True)
 
 # Session configuration
 app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
@@ -218,6 +224,13 @@ try:
     app.register_blueprint(enhanced_registration)
 except Exception as e:
     logger.warning(f"Could not register enhanced_registration blueprint: {e}")
+
+# Register major features blueprint (Face Evaluation, Anomaly Detection, Prediction, Testing)
+try:
+    app.register_blueprint(major_features)
+    logger.info("Major features blueprint registered successfully")
+except Exception as e:
+    logger.warning(f"Could not register major_features blueprint: {e}")
 
 # before_request: session expiry tracking
 @app.before_request
@@ -1497,29 +1510,29 @@ def api_analytics_dashboard():
         user_id = session.get('user_id')
         
         # Date filtering based on filter parameter
-        date_condition = "DATE(a.timestamp) = CURRENT_DATE"
+        date_condition = "a.attendance_date = CURRENT_DATE"
         if time_filter == 'week':
-            date_condition = "a.timestamp >= DATE_SUB(CURRENT_DATE, INTERVAL 7 DAY)"
+            date_condition = "a.attendance_date >= DATE_SUB(CURRENT_DATE, INTERVAL 7 DAY)"
         elif time_filter == 'month':
-            date_condition = "a.timestamp >= DATE_SUB(CURRENT_DATE, INTERVAL 30 DAY)"
+            date_condition = "a.attendance_date >= DATE_SUB(CURRENT_DATE, INTERVAL 30 DAY)"
         elif time_filter == 'semester':
             date_condition = "1=1"  # All data
         
         # 1. Overall Statistics
         stats_query = f'''
             SELECT 
-                COUNT(DISTINCT u.user_id) as total_students,
-                COUNT(DISTINCT DATE(a.timestamp)) as total_sessions,
+                COUNT(DISTINCT u.id) as total_students,
+                COUNT(DISTINCT a.attendance_date) as total_sessions,
                 ROUND(AVG(CASE WHEN a.status = 'P' THEN 100 ELSE 0 END), 2) as avg_attendance,
-                COUNT(DISTINCT CASE WHEN att_pct.percentage < 75 THEN u.user_id END) as low_attendance_count
+                COUNT(DISTINCT CASE WHEN att_pct.percentage < 75 THEN u.id END) as low_attendance_count
             FROM users u
-            LEFT JOIN attendance a ON u.user_id = a.user_id AND {date_condition}
+            LEFT JOIN attendance a ON u.id = a.user_id AND {date_condition}
             LEFT JOIN (
                 SELECT user_id, 
                        ROUND(AVG(CASE WHEN status = 'P' THEN 100 ELSE 0 END), 2) as percentage
                 FROM attendance
                 GROUP BY user_id
-            ) att_pct ON u.user_id = att_pct.user_id
+            ) att_pct ON u.id = att_pct.user_id
             WHERE u.role = 'student'
         '''
         
@@ -1534,12 +1547,12 @@ def api_analytics_dashboard():
         # 2. Attendance Trend (Last 7 days)
         trend_query = f'''
             SELECT 
-                DATE(a.timestamp) as date,
+                a.attendance_date as date,
                 ROUND(AVG(CASE WHEN a.status = 'P' THEN 100 ELSE 0 END), 2) as attendance_percentage
             FROM attendance a
             WHERE {date_condition}
-            GROUP BY DATE(a.timestamp)
-            ORDER BY DATE(a.timestamp) ASC
+            GROUP BY a.attendance_date
+            ORDER BY a.attendance_date ASC
             LIMIT 10
         '''
         
@@ -1579,11 +1592,11 @@ def api_analytics_dashboard():
         # 4. Time-wise Attendance
         time_query = f'''
             SELECT 
-                HOUR(a.timestamp) as hour,
+                HOUR(a.created_at) as hour,
                 ROUND(AVG(CASE WHEN a.status = 'P' THEN 100 ELSE 0 END), 2) as attendance_percentage
             FROM attendance a
             WHERE {date_condition}
-            GROUP BY HOUR(a.timestamp)
+            GROUP BY HOUR(a.created_at)
             ORDER BY hour ASC
         '''
         
@@ -1607,12 +1620,12 @@ def api_analytics_dashboard():
             SELECT 
                 u.name as student_name,
                 a.subject,
-                a.timestamp,
+                a.created_at as timestamp,
                 a.status
             FROM attendance a
-            JOIN users u ON a.user_id = u.user_id
+            JOIN users u ON a.user_id = u.id
             WHERE {date_condition}
-            ORDER BY a.timestamp DESC
+            ORDER BY a.created_at DESC
             LIMIT 10
         '''
         

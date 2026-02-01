@@ -3,8 +3,8 @@ SecureAttend Pro - Setup and Database Creation Script
 This script initializes the database and creates necessary tables
 """
 
-import mysql.connector
-from mysql.connector import Error
+import pymysql
+from pymysql import Error
 import os
 from config import Config
 
@@ -12,14 +12,14 @@ def create_database():
     """Create the attendance_system database if it doesn't exist"""
     try:
         # Connect to MySQL server (without specifying database)
-        connection = mysql.connector.connect(
+        connection = pymysql.connect(
             host=Config.MYSQL_HOST,
             user=Config.MYSQL_USER,
             password=Config.MYSQL_PASSWORD,
-            auth_plugin='mysql_native_password'
+            charset='utf8mb4'
         )
         
-        if connection.is_connected():
+        if connection.open:
             cursor = connection.cursor()
             
             # Create database if it doesn't exist
@@ -31,22 +31,8 @@ def create_database():
             return True
             
     except Error as e:
-        print(f"Error creating database with auth_plugin: {e}")
-        # Try without auth_plugin
-        try:
-            connection = mysql.connector.connect(
-                host=Config.MYSQL_HOST,
-                user=Config.MYSQL_USER,
-                password=Config.MYSQL_PASSWORD
-            )
-            
-            if connection.is_connected():
-                cursor = connection.cursor()
-                cursor.execute(f"CREATE DATABASE IF NOT EXISTS {Config.MYSQL_DATABASE}")
-                print(f"Database '{Config.MYSQL_DATABASE}' created or already exists")
-                cursor.close()
-                connection.close()
-                return True
+        print(f"Error creating database: {e}")
+        return False
                 
         except Error as e2:
             print(f"Error creating database: {e2}")
