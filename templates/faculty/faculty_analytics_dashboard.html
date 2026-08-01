@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+
+{% block title %}Faculty Analytics Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-chart-bar me-2" style="color: #0d6efd;"></i>Faculty Analytics Dashboard</h2>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Filters Card -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filters</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('student_management.faculty_analytics') }}" class="row g-3">
+                <div class="col-md-3">
+                    <label for="subject" class="form-label">Subject</label>
+                    <select name="subject" id="subject" class="form-select">
+                        <option value="">All Subjects</option>
+                        {% for subject in subjects %}
+                        <option value="{{ subject }}" {% if selected_subject == subject %}selected{% endif %}>
+                            {{ subject }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="date" class="form-label">Date</label>
+                    <input type="date" name="date" id="date" class="form-control" 
+                           value="{{ selected_date.strftime('%Y-%m-%d') if selected_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="search_enrollment" class="form-label">Search by Enrollment</label>
+                    <input type="text" name="search_enrollment" id="search_enrollment" class="form-control" 
+                           placeholder="2201031000001" value="{{ search_enrollment or '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="search_surname" class="form-label">Search by Surname</label>
+                    <input type="text" name="search_surname" id="search_surname" class="form-control" 
+                           placeholder="Patel" value="{{ search_surname or '' }}">
+                </div>
+                <div class="col-md-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>Apply Filters
+                    </button>
+                    <a href="{{ url_for('student_management.faculty_analytics') }}" class="btn btn-secondary">
+                        <i class="fas fa-redo me-1"></i>Reset
+                    </a>
+                    <a href="{{ url_for('student_management.export_attendance_report') }}?subject={{ selected_subject or '' }}" 
+                       class="btn btn-success">
+                        <i class="fas fa-download me-1"></i>Export Report
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body text-white">
+                    <h6 class="opacity-75">Total Students</h6>
+                    <h2>{{ total_students }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="card-body text-white">
+                    <h6 class="opacity-75">Top Performers</h6>
+                    <h2>{{ top_students|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                <div class="card-body text-white">
+                    <h6 class="opacity-75">Below 75%</h6>
+                    <h2>{{ below_75|length }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top 5 Regular Students -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%); color: white;">
+                    <h5 class="mb-0"><i class="fas fa-star me-2"></i>Top 5 Regular Students</h5>
+                </div>
+                <div class="card-body">
+                    {% if top_students %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Enrollment No</th>
+                                    <th>Name</th>
+                                    <th>Total Sessions</th>
+                                    <th>Attended</th>
+                                    <th>Attendance %</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in top_students %}
+                                <tr>
+                                    <td>
+                                        {% if loop.index == 1 %}
+                                            <i class="fas fa-trophy text-warning fa-lg"></i>
+                                        {% elif loop.index == 2 %}
+                                            <i class="fas fa-medal text-secondary fa-lg"></i>
+                                        {% elif loop.index == 3 %}
+                                            <i class="fas fa-medal text-danger fa-lg"></i>
+                                        {% else %}
+                                            <span class="badge bg-primary">{{ loop.index }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ student.enrollment_no }}</td>
+                                    <td><strong>{{ student.full_name }}</strong></td>
+                                    <td>{{ student.total_sessions }}</td>
+                                    <td>{{ student.attended }}</td>
+                                    <td><span class="badge bg-success">{{ "%.1f"|format(student.attendance_percentage) }}%</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-4">No data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Students Below 75% -->
+    {% if below_75 %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Students Below 75% Attendance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-warning">
+                                <tr>
+                                    <th>Enrollment No</th>
+                                    <th>Name</th>
+                                    <th>Total Sessions</th>
+                                    <th>Attended</th>
+                                    <th>Attendance %</th>
+                                    <th>Risk Level</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in below_75 %}
+                                <tr>
+                                    <td>{{ student.enrollment_no }}</td>
+                                    <td>{{ student.full_name }}</td>
+                                    <td>{{ student.total_sessions }}</td>
+                                    <td>{{ student.attended }}</td>
+                                    <td>
+                                        <span class="badge {% if student.attendance_percentage < 60 %}bg-danger{% else %}bg-warning{% endif %}">
+                                            {{ "%.1f"|format(student.attendance_percentage) }}%
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if student.attendance_percentage < 60 %}
+                                            <span class="badge bg-danger">High Risk</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">Medium Risk</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Daily Attendance Summary -->
+    {% if daily_summary %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
+                    <h5 class="mb-0"><i class="fas fa-calendar-day me-2"></i>Daily Attendance Summary - {{ selected_date.strftime('%B %d, %Y') }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-info">
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Total Students</th>
+                                    <th>Present</th>
+                                    <th>Absent</th>
+                                    <th>Attendance %</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for summary in daily_summary %}
+                                <tr>
+                                    <td><strong>{{ summary.subject_name }}</strong></td>
+                                    <td>{{ summary.total_students }}</td>
+                                    <td><span class="text-success">{{ summary.present_count }}</span></td>
+                                    <td><span class="text-danger">{{ summary.absent_count }}</span></td>
+                                    <td>
+                                        <div class="progress" style="height: 25px;">
+                                            <div class="progress-bar {% if summary.attendance_percentage >= 75 %}bg-success{% elif summary.attendance_percentage >= 60 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                 role="progressbar" 
+                                                 data-width="{{ summary.attendance_percentage }}"
+                                                 aria-valuenow="{{ summary.attendance_percentage }}" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100">
+                                                {{ "%.1f"|format(summary.attendance_percentage) }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- All Students List with Pagination -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-users me-2"></i>Students List</h5>
+                </div>
+                <div class="card-body">
+                    {% if students %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Enrollment No</th>
+                                    <th>Name</th>
+                                    <th>Total Sessions</th>
+                                    <th>Attended</th>
+                                    <th>Attendance %</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in students %}
+                                <tr>
+                                    <td>{{ student.enrollment_no }}</td>
+                                    <td>{{ student.full_name }}</td>
+                                    <td>{{ student.total_sessions or 0 }}</td>
+                                    <td>{{ student.attended or 0 }}</td>
+                                    <td>
+                                        {% if student.attendance_percentage %}
+                                            <span class="badge {% if student.attendance_percentage >= 75 %}bg-success{% elif student.attendance_percentage >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
+                                                {{ "%.1f"|format(student.attendance_percentage) }}%
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if student.attendance_percentage %}
+                                            {% if student.attendance_percentage >= 75 %}
+                                                <span class="badge bg-success">Safe</span>
+                                            {% elif student.attendance_percentage >= 60 %}
+                                                <span class="badge bg-warning">Medium Risk</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">High Risk</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">No Data</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if total_pages > 1 %}
+                    <nav aria-label="Students pagination">
+                        <ul class="pagination justify-content-center mt-3">
+                            {% if page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page - 1 }}&subject={{ selected_subject or '' }}&date={{ selected_date.strftime('%Y-%m-%d') if selected_date }}&search_enrollment={{ search_enrollment or '' }}&search_surname={{ search_surname or '' }}">
+                                    Previous
+                                </a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for p in range(1, total_pages + 1) %}
+                                {% if p == page %}
+                                <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                                {% elif p <= 3 or p > total_pages - 3 or (p >= page - 1 and p <= page + 1) %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ p }}&subject={{ selected_subject or '' }}&date={{ selected_date.strftime('%Y-%m-%d') if selected_date }}&search_enrollment={{ search_enrollment or '' }}&search_surname={{ search_surname or '' }}">
+                                        {{ p }}
+                                    </a>
+                                </li>
+                                {% elif p == 4 or p == total_pages - 3 %}
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page < total_pages %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page + 1 }}&subject={{ selected_subject or '' }}&date={{ selected_date.strftime('%Y-%m-%d') if selected_date }}&search_enrollment={{ search_enrollment or '' }}&search_surname={{ search_surname or '' }}">
+                                    Next
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-muted text-center py-4">No students found</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .table th {
+        border-top: none;
+    }
+</style>
+
+<script>
+// Set progress bar widths from data attributes
+document.addEventListener('DOMContentLoaded', function() {
+    const progressBars = document.querySelectorAll('.progress-bar[data-width]');
+    progressBars.forEach(function(bar) {
+        const width = bar.getAttribute('data-width');
+        bar.style.width = width + '%';
+    });
+});
+</script>
+{% endblock %}

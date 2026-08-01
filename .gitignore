@@ -43,3 +43,7 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+
+# Local backup files
+templates.zip
+student_data_sas.csv

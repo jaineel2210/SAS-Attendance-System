@@ -77,6 +77,7 @@ def init_db():
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name VARCHAR(100) NOT NULL,
+                email VARCHAR(100) UNIQUE NULL,
                 enrollment_no VARCHAR(50) UNIQUE,
                 mobile_number VARCHAR(15),
                 role VARCHAR(20) DEFAULT 'student',
@@ -91,15 +92,48 @@ def init_db():
         ''')
         logger.info("Table 'users' created/verified successfully")
         
+        # Create password_reset_otp table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS password_reset_otp (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                mobile_number VARCHAR(15) NOT NULL,
+                role VARCHAR(20) NOT NULL,
+                identifier VARCHAR(50),
+                otp_code VARCHAR(6) NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                is_used INTEGER DEFAULT 0,
+                request_ip VARCHAR(45),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        ''')
+        logger.info("Table 'password_reset_otp' created/verified successfully")
+
+        # Create holidays table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS holidays (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                holiday_date DATE NOT NULL,
+                title VARCHAR(150) NOT NULL,
+                description VARCHAR(255),
+                created_by INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NULL,
+                FOREIGN KEY (created_by) REFERENCES users(id)
+            )
+        ''')
+        logger.info("Table 'holidays' created/verified successfully")
+
         # Create otp_verification table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS otp_verification (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 mobile_number VARCHAR(15) NOT NULL,
-                otp VARCHAR(6) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                otp_code VARCHAR(6) NOT NULL,
                 expires_at TIMESTAMP,
-                is_verified INTEGER DEFAULT 0
+                is_used INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         logger.info("Table 'otp_verification' created/verified successfully")

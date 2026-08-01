@@ -1,0 +1,408 @@
+{% extends "base.html" %}
+
+{% block title %}Holiday Calendar - SecureAttend Pro{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-12">
+            <div class="glass-card overflow-hidden">
+                <div class="glass-card-header d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 p-4">
+                    <div>
+                        <h4 class="mb-1"><i class="fas fa-calendar-alt me-2"></i>Holiday Calendar</h4>
+                        <p class="mb-0 text-muted">Monthly calendar with public holidays, university holidays, Sundays, and event details.</p>
+                    </div>
+                    <div class="text-md-end">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row gy-3">
+                        <div class="col-12">
+                            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+                                <div>
+                                    <h5 class="mb-1">Calendar overview</h5>
+                                    <p class="text-muted mb-0 small">Search, filter, and inspect upcoming holiday events across the academic year.</p>
+                                </div>
+                                <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2">
+                                    <span class="badge rounded-pill bg-primary bg-opacity-15 text-primary py-2 px-3">University holidays: {{ university_holiday_count }}</span>
+                                    <div class="input-group input-group-sm shadow-sm">
+                                        <span class="input-group-text bg-white border-end-0" id="holiday-search-label"><i class="fas fa-search"></i></span>
+                                        <input id="holidaySearchInput" type="search" class="form-control border-start-0" placeholder="Search holidays" aria-label="Search holidays" aria-describedby="holiday-search-label">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-xl-9 position-relative">
+                            <div id="holiday-calendar" class="glass-card h-100"></div>
+                            <div id="calendarLoading" class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75" style="z-index:10; display:none;">
+                                <div class="text-center">
+                                    <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading calendar...</span></div>
+                                    <p class="mt-2 mb-0 fw-semibold">Loading holiday calendar…</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-xl-3">
+                            <div class="h-100 d-flex flex-column gap-3">
+                                <div class="glass-panel p-4 h-100">
+                                    <h5 class="mb-3">Legend</h5>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="legend-swatch bg-danger me-2"></span>
+                                        <span>Public Holiday</span>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="legend-swatch bg-warning me-2"></span>
+                                        <span>Sunday</span>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <span class="legend-swatch bg-primary me-2"></span>
+                                        <span>University Holiday</span>
+                                    </div>
+                                </div>
+                                <div class="glass-panel p-4">
+                                    <h5 class="mb-3">How it works</h5>
+                                    <ul class="list-unstyled mb-0 small text-muted">
+                                        <li class="mb-2"><i class="fas fa-circle text-danger me-2"></i>Public holidays appear in red.</li>
+                                        <li class="mb-2"><i class="fas fa-circle text-warning me-2"></i>Sundays are highlighted in orange.</li>
+                                        <li class="mb-2"><i class="fas fa-circle text-primary me-2"></i>University holidays show in blue.</li>
+                                        <li>Click any event to view details.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid mt-4">
+    <div id="emptyUniversityHolidayState" class="alert alert-info d-none glass-panel p-4">
+        <h5 class="alert-heading">No university holidays found</h5>
+        <p class="mb-1">There are currently no university-specific holidays in the database. The calendar still displays public holidays and Sundays.</p>
+        <hr>
+        <p class="mb-0">Add records to the <code>holidays</code> table to display university holidays here.</p>
+    </div>
+</div>
+
+<!-- Holiday detail modal -->
+<div class="modal fade" id="holidayDetailModal" tabindex="-1" aria-labelledby="holidayDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="holidayDetailModalLabel">Holiday Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="holidayDetailContent"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" integrity="sha384-CmAVe1nGz2iQY70eE6fC+fQ/Q47s0ipL1iYmsuENHatyUAgQv7c1P6mHm3szX1rX" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js" integrity="sha384-cLXk+6jVpJsj1BgvQm2ulk6gjM4u+I1k74q7QxBrBh3Vb0KgJvUFshigUj3ZtF0E" crossorigin="anonymous"></script>
+<style>
+    #holiday-calendar {
+        min-height: 620px;
+    }
+
+    .legend-swatch {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        display: inline-block;
+    }
+
+    .fc .fc-toolbar-chunk button {
+        border-radius: 0.75rem;
+        padding: 0.65rem 1rem;
+    }
+
+    .fc .fc-col-header-cell-cushion {
+        color: #2d2d2d;
+        font-weight: 600;
+    }
+
+    .fc .fc-daygrid-day.fc-day-today {
+        background: rgba(59, 130, 246, 0.12);
+    }
+
+    .fc .fc-daygrid-day.fc-day-sat .fc-daygrid-day-number,
+    .fc .fc-daygrid-day.fc-day-sun .fc-daygrid-day-number {
+        font-weight: 700;
+    }
+
+    .fc .fc-daygrid-day.fc-day-sun {
+        background-color: rgba(251, 191, 36, 0.12);
+    }
+
+    .fc .fc-event {
+        border: none;
+        border-radius: 0.85rem;
+        font-size: 0.88rem;
+    }
+
+    .fc .fc-event.fc-event-sunday {
+        background-color: #f59e0b !important;
+        border-color: #d97706 !important;
+        color: #1f2937 !important;
+    }
+
+    .fc .fc-event.fc-event-public {
+        background-color: #ef4444 !important;
+        border-color: #b91c1c !important;
+        color: #ffffff !important;
+    }
+
+    .fc .fc-event.fc-event-university {
+        background-color: #3b82f6 !important;
+        border-color: #1d4ed8 !important;
+        color: #ffffff !important;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        body {
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .card {
+            background: #111827;
+            border-color: rgba(148, 163, 184, 0.2);
+        }
+        .card-header {
+            background: #1e293b !important;
+        }
+        .fc, .fc * {
+            color: #e2e8f0 !important;
+        }
+        .fc .fc-toolbar-title,
+        .fc .fc-col-header-cell-cushion,
+        .fc .fc-scrollgrid-section td {
+            color: #e2e8f0 !important;
+        }
+        .fc .fc-daygrid-day {
+            background: #0f172a;
+        }
+        .fc .fc-daygrid-day.fc-day-sun {
+            background-color: rgba(245, 158, 11, 0.15);
+        }
+        .fc .fc-daygrid-day.fc-day-today {
+            background: rgba(59, 130, 246, 0.18);
+        }
+        .fc .fc-daygrid-day-frame {
+            border-color: rgba(148, 163, 184, 0.12);
+        }
+    }
+</style>
+<script type="application/json" id="university-holiday-data">
+{{ holiday_events | tojson | safe }}
+</script>
+<script>
+    const fullCalendarFallbackUrls = [
+        'https://unpkg.com/fullcalendar@6.1.8/index.global.min.js',
+        'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'
+    ];
+
+    function loadFullCalendarFallback(index = 0) {
+        if (index >= fullCalendarFallbackUrls.length) {
+            const fallbackMessage = document.createElement('div');
+            fallbackMessage.className = 'alert alert-danger m-3';
+            fallbackMessage.textContent = 'FullCalendar failed to load from CDN. Please check your network or install the library locally.';
+            document.getElementById('holiday-calendar').appendChild(fallbackMessage);
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = fullCalendarFallbackUrls[index];
+        script.crossOrigin = 'anonymous';
+        script.onload = initializeHolidayCalendar;
+        script.onerror = function() {
+            loadFullCalendarFallback(index + 1);
+        };
+        document.head.appendChild(script);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const loadingOverlay = document.getElementById('calendarLoading');
+        const emptyState = document.getElementById('emptyUniversityHolidayState');
+        const searchInput = document.getElementById('holidaySearchInput');
+        const holidayDataElement = document.getElementById('university-holiday-data');
+        const universityHolidays = holidayDataElement ? JSON.parse(holidayDataElement.textContent || '[]') : [];
+
+        if (universityHolidays.length === 0) {
+            emptyState.classList.remove('d-none');
+        }
+
+        function formatFullDate(value) {
+            return new Intl.DateTimeFormat('en-IN', { year: 'numeric', month: 'long', day: 'numeric' }).format(value);
+        }
+
+        function buildPublicHolidayEvents(year) {
+            const definitions = [
+                { month: 1, day: 26, title: 'Republic Day', description: 'National holiday celebrating the Republic of India.' },
+                { month: 3, day: 8, title: 'Holi', description: 'Festival of colors. Date may vary, verify with university calendar.' },
+                { month: 5, day: 1, title: 'Labour Day', description: 'International Workers’ Day.' },
+                { month: 8, day: 15, title: 'Independence Day', description: 'National holiday commemorating independence.' },
+                { month: 10, day: 2, title: 'Gandhi Jayanti', description: 'Birth anniversary of Mahatma Gandhi.' },
+                { month: 12, day: 25, title: 'Christmas Day', description: 'Christian holiday celebrated nationwide.' }
+            ];
+            return definitions.map(item => ({
+                id: `public-${year}-${item.month}-${item.day}`,
+                title: item.title,
+                start: `${year}-${String(item.month).padStart(2, '0')}-${String(item.day).padStart(2, '0')}`,
+                description: item.description,
+                category: 'public',
+                classNames: ['fc-event-public']
+            }));
+        }
+
+        function buildSundayEvents(year) {
+            const events = [];
+            const date = new Date(year, 0, 1);
+            while (date.getFullYear() === year) {
+                if (date.getDay() === 0) {
+                    events.push({
+                        id: `sunday-${date.toISOString().slice(0, 10)}`,
+                        title: 'Sunday',
+                        start: date.toISOString().slice(0, 10),
+                        description: 'Weekly Sunday - campus closed or weekend schedule.',
+                        category: 'sunday',
+                        classNames: ['fc-event-sunday']
+                    });
+                }
+                date.setDate(date.getDate() + 1);
+            }
+            return events;
+        }
+
+        const currentYear = new Date().getFullYear();
+        const calendarEvents = [
+            ...buildPublicHolidayEvents(currentYear - 1),
+            ...buildPublicHolidayEvents(currentYear),
+            ...buildPublicHolidayEvents(currentYear + 1),
+            ...buildSundayEvents(currentYear - 1),
+            ...buildSundayEvents(currentYear),
+            ...buildSundayEvents(currentYear + 1),
+            ...universityHolidays
+        ];
+
+        function initializeHolidayCalendar() {
+            if (typeof FullCalendar === 'undefined') {
+                return loadFullCalendarFallback(0);
+            }
+
+            const calendarEl = document.getElementById('holiday-calendar');
+            const detailModalEl = document.getElementById('holidayDetailModal');
+            const detailModal = new bootstrap.Modal(detailModalEl);
+            const detailContent = document.getElementById('holidayDetailContent');
+            const detailTitle = document.getElementById('holidayDetailModalLabel');
+
+            function showDetailsForDate(date, events) {
+                const displayDate = formatFullDate(date);
+                detailTitle.textContent = `Date details: ${displayDate}`;
+                if (!events.length) {
+                    detailContent.innerHTML = `<div class="text-center py-4 text-muted">No holidays found for this date.</div>`;
+                    detailModal.show();
+                    return;
+                }
+                detailContent.innerHTML = events.map(event => {
+                    const category = event.extendedProps.category || event._def.extendedProps?.category || 'holiday';
+                    const label = category === 'public' ? 'Public Holiday' : category === 'university' ? 'University Holiday' : 'Sunday';
+                    return `
+                        <div class="mb-3 p-3 rounded-3 bg-light bg-opacity-50">
+                            <h5 class="mb-1">${event.title}</h5>
+                            <p class="mb-1 text-muted"><strong>${label}</strong></p>
+                            <p class="mb-0">${event.extendedProps.description || event._def.extendedProps?.description || 'No additional details available.'}</p>
+                        </div>
+                    `;
+                }).join('');
+                detailModal.show();
+            }
+
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prevYear,prev,next,nextYear today',
+                    center: 'title',
+                    right: 'dayGridMonth'
+                },
+                navLinks: true,
+                selectable: true,
+                selectMirror: true,
+                dayMaxEvents: true,
+                height: 'auto',
+                contentHeight: 'auto',
+                events: calendarEvents,
+                eventClick: function(info) {
+                    showDetailsForDate(info.event.start, [info.event]);
+                },
+                dateClick: function(info) {
+                    const clickedDate = info.dateStr;
+                    const matchingEvents = calendar.getEvents().filter(event => event.startStr === clickedDate);
+                    showDetailsForDate(info.date, matchingEvents);
+                },
+                eventDidMount: function(info) {
+                    const description = info.event.extendedProps.description || info.event._def.extendedProps?.description;
+                    if (description) {
+                        info.el.setAttribute('title', description);
+                        if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+                            new bootstrap.Tooltip(info.el, { title: description, placement: 'top', trigger: 'hover focus' });
+                        }
+                    }
+                },
+                dayCellDidMount: function(info) {
+                    if (info.date.getDay() === 0) {
+                        info.el.classList.add('fc-day-sun');
+                    }
+                    if (info.date.toDateString() === new Date().toDateString()) {
+                        info.el.classList.add('fc-day-today');
+                    }
+                },
+                loading: function(isLoading) {
+                    if (loadingOverlay) {
+                        loadingOverlay.style.display = isLoading ? 'flex' : 'none';
+                    }
+                }
+            });
+
+            calendar.render();
+
+            function filterCalendarEvents() {
+                const query = searchInput.value.trim().toLowerCase();
+                const filtered = calendarEvents.filter(event => {
+                    return event.title.toLowerCase().includes(query) ||
+                        (event.description || '').toLowerCase().includes(query) ||
+                        (event.category || '').toLowerCase().includes(query);
+                });
+                calendar.removeAllEvents();
+                calendar.addEventSource(filtered);
+            }
+
+            searchInput.addEventListener('input', filterCalendarEvents);
+        }
+
+        if (typeof FullCalendar !== 'undefined') {
+            initializeHolidayCalendar();
+        } else {
+            loadFullCalendarFallback(0);
+        }
+
+        // If the library is loaded but the calendar container is hidden or not yet sized,
+        // render again after a small delay to avoid a blank rendering area.
+        setTimeout(function() {
+            const calendarEl = document.getElementById('holiday-calendar');
+            if (calendarEl && calendarEl.innerHTML.trim().length === 0 && typeof FullCalendar !== 'undefined') {
+                initializeHolidayCalendar();
+            }
+        }, 250);
+    });
+</script>
+{% endblock %}

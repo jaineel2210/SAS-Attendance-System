@@ -73,10 +73,58 @@ A comprehensive attendance management system combining face recognition, RFID te
 - **Font Awesome**: Icon library
 
 ### Security & Communication
-- **bcrypt**: Password hashing
-- **Twilio**: SMS/OTP service
-- **PySerial**: RFID reader communication
-- **cryptography**: Data encryption
+
+## 📆 Holiday Calendar Module
+
+An interactive holiday visualization module powered by FullCalendar and Bootstrap 5.
+
+### Description
+This module displays:
+- Indian public holidays by default
+- Sundays automatically highlighted
+- University holidays loaded from the `holidays` database table
+It works even when the `holidays` table is empty by still rendering the calendar and public holiday events.
+
+### Features
+- Monthly calendar view with responsive layout
+- Holiday detail modal with descriptions
+- Search/filter holiday events
+- Current date highlight
+- Loading spinner while calendar initializes
+- FullCalendar CDN fallback support
+- Dark mode compatible styling
+
+### Technical Details
+- Flask route: `/holidays`
+- Template: `templates/holidays.html`
+- Database: `holidays` table
+- Frontend: FullCalendar.js, Bootstrap 5, Jinja2
+
+### Holiday Database Table
+```sql
+CREATE TABLE holidays (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    holiday_date DATE NOT NULL,
+    title VARCHAR(150) NOT NULL,
+    description VARCHAR(255),
+    created_by INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL,
+    UNIQUE KEY unique_holiday_date (holiday_date),
+    FOREIGN KEY (created_by) REFERENCES users(id)
+);
+```
+
+### Migration and samples
+- `database/migrations/add_holidays_table.sql`
+- `database/migrations/sample_holiday_data.sql`
+
+### Future Enhancements
+- Admin holiday CRUD interface
+- Recurring holiday support
+- Holiday export to CSV
+- Attendance impact analytics for holidays
+
 
 ## 🏗 Project Structure
 

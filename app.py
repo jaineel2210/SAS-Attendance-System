@@ -12,6 +12,7 @@ import traceback
 import sys
 from face_processing.face_processor import face_processor
 from rfid.rfid_reader import rfid_reader
+import secrets
 # from utils.analytics import analytics  # Temporarily disabled due to matplotlib issues
 from utils.otp_service import otp_service
 
@@ -30,6 +31,7 @@ except ImportError:
 from enhanced_registration import enhanced_registration
 from config import Config
 import os
+import socket
 from datetime import datetime, timedelta
 import logging
 import hashlib
@@ -37,6 +39,8 @@ from functools import wraps
 
 # Import major feature routes
 from routes.major_features import major_features
+from routes.student_management import student_management_bp
+from routes.iot_attendance import iot_routes
 
 # Temporary mock analytics class (kept as-is since original file provided it)
 class MockAnalytics:
@@ -77,6 +81,59 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.config.from_object(Config)
 
+def get_lan_ip_address():
+    """Return the local LAN IP address or None when unavailable."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        if ip.startswith("127.") or ip.startswith("169.254."):
+            return None
+        return ip
+    except Exception:
+        return None
+
+
+def print_startup_banner(host='127.0.0.1', port=5000):
+    """Print the required startup banner and access URLs."""
+    lan_ip = get_lan_ip_address()
+    print("=" * 51)
+    print("SecureAttend Pro")
+    print("Smart Student Attendance System")
+    print("=" * 51)
+    print()
+    print("[INFO] Server Instance Started")
+    print("[INFO] MySQL Connected" if db.startup_status.get('mysql_connected') else "[ERROR] MySQL not connected")
+    print("[INFO] Database Verified" if db.startup_status.get('database_verified') else "[ERROR] Database verification failed")
+    print("[INFO] Tables Verified" if db.startup_status.get('tables_verified') else "[ERROR] Table verification failed")
+    print("[INFO] Student Accounts Verified" if db.startup_status.get('student_accounts_verified') else "[INFO] Student Accounts Not Fully Recovered")
+    print("[INFO] Faculty Accounts Verified" if db.startup_status.get('faculty_accounts_verified') else "[INFO] Faculty Accounts Not Fully Recovered")
+    print()
+    print("=" * 51)
+    print("SERVER STATUS")
+    print("=" * 51)
+    print()
+    print("Flask app running on:")
+    print(f"http://{host}:{port}")
+    if lan_ip:
+        print(f"http://{lan_ip}:{port}")
+    print()
+    print("=" * 51)
+    print("Access Application:")
+    print()
+    print("Local:")
+    print(f"http://127.0.0.1:{port}")
+    if lan_ip:
+        print()
+        print("Network:")
+        print(f"http://{lan_ip}:{port}")
+    print("=" * 51)
+    print()
+
+
+# Import student management routes
+
 # Initialize SocketIO for real-time updates
 socketio = SocketIO(app, cors_allowed_origins="*")
 
@@ -100,6 +157,22 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Prevent CSRF
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)  # Session expires after 30 minutes
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True  # Refresh session on each request
 
+
+def generate_csrf_token():
+    """Generate a CSRF token and store it in session."""
+    token = session.get(Config.CSRF_SESSION_KEY)
+    if not token:
+        token = secrets.token_hex(Config.CSRF_TOKEN_LENGTH // 2)
+        session[Config.CSRF_SESSION_KEY] = token
+        session.modified = True
+    return token
+
+
+@app.context_processor
+def inject_csrf_token():
+    return {'csrf_token': generate_csrf_token}
+
+
 # Session validation - Auto logout on server restart
 @app.before_request
 def validate_session():
@@ -118,21 +191,16 @@ def validate_session():
     
     # If user is logged in, check if session is from current server instance
     if 'user_id' in session:
-        # Check if session has server instance ID
         session_instance_id = session.get('server_instance_id')
-        
-        # If session doesn't have instance ID or it doesn't match current server
         if not session_instance_id or session_instance_id != SERVER_INSTANCE_ID:
-            # Clear the session
             session.clear()
             flash('Your session has expired due to server restart. Please login again.', 'warning')
-            logger.info("Session invalidated due to server restart")
+            logger.info('Session invalidated due to server restart')
             return redirect(url_for('login'))
-        
-        # Update last activity timestamp
+
         session['last_activity'] = datetime.now().timestamp()
         session.modified = True
-    
+
     return None
 
 # CORS / headers handling: single consolidated after_request and OPTIONS handler
@@ -170,24 +238,6 @@ def favicon():
     except:
         # Return empty response if favicon doesn't exist
         return '', 204
-
-# Initialize database when app starts
-def initialize_database():
-    """Initialize database connection and create tables"""
-    try:
-        if db.connect():
-            db.create_tables()
-            # optional: db.insert_sample_data()  # kept out if undesired in production
-            logger.info("Database initialized successfully")
-        else:
-            logger.error("Failed to initialize database")
-    except Exception as e:
-        logger.error(f"Exception while initializing database: {e}")
-        logger.error(traceback.format_exc())
-
-# Initialize database within app context
-with app.app_context():
-    initialize_database()
 
 # Helper decorators
 def login_required(f):
@@ -231,6 +281,21 @@ try:
     logger.info("Major features blueprint registered successfully")
 except Exception as e:
     logger.warning(f"Could not register major_features blueprint: {e}")
+
+# Register IoT attendance blueprint
+try:
+    app.register_blueprint(iot_routes)
+    logger.info("IoT attendance blueprint registered successfully")
+except Exception as e:
+    logger.warning(f"Could not register iot_routes blueprint: {e}")
+
+# Register student management blueprint (CSV Import, Analytics)
+try:
+    if student_management_bp:
+        app.register_blueprint(student_management_bp)
+        logger.info("Student management blueprint registered successfully")
+except Exception as e:
+    logger.warning(f"Could not register student_management blueprint: {e}")
 
 # before_request: session expiry tracking
 @app.before_request
@@ -430,6 +495,129 @@ def login():
 
     return render_template('login.html')
 
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Forgot password flow for students, faculty, and admins."""
+    if request.method == 'GET':
+        session.pop('password_reset', None)
+        session.pop('password_reset_verified', None)
+        return render_template('forgot_password.html', step='request_otp')
+
+    step = request.form.get('step', 'request_otp')
+    identifier = request.form.get('identifier', '').strip()
+    role = request.form.get('role', '').strip() or None
+    session_data = session.get('password_reset') or {}
+
+    def render(step_name, identifier_override=None, **context):
+        return render_template(
+            'forgot_password.html',
+            step=step_name,
+            role=role or '',
+            identifier=identifier_override or identifier or session_data.get('identifier'),
+            **context
+        )
+
+    if step == 'request_otp':
+        if not identifier:
+            flash('Please enter your account identifier to receive the OTP.', 'error')
+            return render('request_otp')
+
+        user = auth_manager.find_user_for_password_reset(identifier, role)
+        if not user:
+            flash('No matching account found. Please check your details and try again.', 'error')
+            return render('request_otp')
+
+        if not user.get('mobile_number'):
+            flash('This account does not have a registered mobile number. Contact support.', 'error')
+            return render('request_otp')
+
+        session['password_reset'] = {
+            'user_id': user['id'],
+            'mobile_number': user['mobile_number'],
+            'role': user.get('role'),
+            'identifier': identifier
+        }
+        session.modified = True
+
+        otp_success, otp_message = auth_manager.send_password_reset_otp(user, request.remote_addr)
+        if otp_success:
+            flash(otp_message, 'info')
+            return render('verify_otp', mobile_number=user['mobile_number'])
+
+        flash(otp_message, 'error')
+        return render('request_otp')
+
+    if step == 'resend_otp':
+        if not session_data:
+            flash('Your password reset request has expired. Please start again.', 'error')
+            return redirect(url_for('forgot_password'))
+
+        user = auth_manager.find_user_for_password_reset(session_data.get('identifier', ''), session_data.get('role'))
+        if not user:
+            flash('Unable to re-send OTP. Please start the process again.', 'error')
+            return redirect(url_for('forgot_password'))
+
+        otp_success, otp_message = auth_manager.send_password_reset_otp(user, request.remote_addr)
+        if otp_success:
+            flash(otp_message, 'info')
+            return render('verify_otp', mobile_number=session_data['mobile_number'])
+
+        flash(otp_message, 'error')
+        return render('verify_otp', mobile_number=session_data['mobile_number'])
+
+    if step == 'verify_otp':
+        if not session_data:
+            flash('Your password reset request has expired. Please start again.', 'error')
+            return redirect(url_for('forgot_password'))
+
+        otp_code = request.form.get('otp_code', '').strip()
+        if not otp_code:
+            flash('Please enter the OTP sent to your registered mobile number.', 'error')
+            return render('verify_otp', mobile_number=session_data['mobile_number'])
+
+        otp_success, otp_message = auth_manager.verify_password_reset_otp(session_data['mobile_number'], otp_code)
+        if not otp_success:
+            flash(otp_message, 'error')
+            return render('verify_otp', mobile_number=session_data['mobile_number'])
+
+        session['password_reset_verified'] = True
+        session.modified = True
+        flash('OTP verified successfully. Set a new password below.', 'success')
+        return render('reset_password', identifier_override=session_data.get('identifier'), role=session_data.get('role'))
+
+    if step == 'reset_password':
+        if not session_data or not session.get('password_reset_verified'):
+            flash('Password reset session invalid. Please start again.', 'error')
+            return redirect(url_for('forgot_password'))
+
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+
+        if not password or not confirm_password:
+            flash('Please enter and confirm your new password.', 'error')
+            return render('reset_password', identifier_override=session_data.get('identifier'), role=session_data.get('role'))
+
+        if password != confirm_password:
+            flash('Passwords do not match. Please try again.', 'error')
+            return render('reset_password', identifier_override=session_data.get('identifier'), role=session_data.get('role'))
+
+        if not auth_manager.is_strong_password(password):
+            flash('Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character.', 'error')
+            return render('reset_password', identifier_override=session_data.get('identifier'), role=session_data.get('role'))
+
+        reset_success, reset_message = auth_manager.reset_user_password(session_data['user_id'], password)
+        if not reset_success:
+            flash(reset_message, 'error')
+            return render('reset_password', identifier_override=session_data.get('identifier'), role=session_data.get('role'))
+
+        session.pop('password_reset', None)
+        session.pop('password_reset_verified', None)
+        flash('Your password has been reset successfully. Please login with your new password.', 'success')
+        return redirect(url_for('login'))
+
+    flash('Invalid request for password reset. Please try again.', 'error')
+    return redirect(url_for('forgot_password'))
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     """Redirect to enhanced registration home page"""
@@ -485,13 +673,21 @@ def dashboard():
         if user_role == 'admin':
             stats_query = '''
                 SELECT 
-                    (SELECT COUNT(*) FROM users WHERE role = 'student') as total_students,
+                    (SELECT COUNT(*) FROM students) as total_students,
                     (SELECT COUNT(*) FROM users WHERE role = 'faculty') as total_faculty,
                     (SELECT COUNT(*) FROM attendance WHERE attendance_date = CURDATE()) as today_attendance,
-                    (SELECT COUNT(DISTINCT subject) FROM sessions) as total_subjects
+                    (SELECT COUNT(DISTINCT subject) FROM sessions) as total_subjects,
+                    (SELECT COUNT(*) FROM attendance_records) as total_attendance_records,
+                    (SELECT ROUND(AVG(CASE WHEN status = 'Present' THEN 100 ELSE 0 END), 2) 
+                     FROM attendance_records) as avg_attendance
             '''
-            stats = db.execute_query(stats_query)
-            dashboard_stats = stats[0] if stats else {}
+            stats = db.execute_query(stats_query) or []
+            if isinstance(stats, list) and stats:
+                dashboard_stats = stats[0] or {}
+            elif isinstance(stats, dict):
+                dashboard_stats = stats
+            else:
+                dashboard_stats = {}
             return render_template('dashboard/admin_dashboard.html', stats=dashboard_stats)
 
         elif user_role == 'faculty':
@@ -512,6 +708,36 @@ def dashboard():
         logger.error(traceback.format_exc())
         # Fallback to simple dashboard or error page
         return render_template('dashboard/error_dashboard.html'), 500
+
+@app.route('/holidays')
+@login_required
+def holidays():
+    """Holiday calendar view."""
+    try:
+        rows = db.execute_query('SELECT holiday_date, title, description FROM holidays ORDER BY holiday_date') or []
+        if not isinstance(rows, list):
+            rows = []
+        holiday_events = []
+        for row in rows:
+            start_date = row['holiday_date']
+            if hasattr(start_date, 'isoformat'):
+                start_date = start_date.isoformat()
+            holiday_events.append({
+                'title': row.get('title', 'Holiday'),
+                'start': start_date,
+                'description': row.get('description', ''),
+                'className': 'fc-event fc-event-university'
+            })
+
+        return render_template('holidays.html',
+                               holiday_events=holiday_events,
+                               university_holiday_count=len(holiday_events))
+    except Exception as e:
+        logger.error(f"Error loading holidays page: {e}")
+        return render_template('holidays.html',
+                               holiday_events=[],
+                               university_holiday_count=0)
+
 
 @app.route('/mark_attendance')
 @login_required
@@ -1510,30 +1736,29 @@ def api_analytics_dashboard():
         user_id = session.get('user_id')
         
         # Date filtering based on filter parameter
-        date_condition = "a.attendance_date = CURRENT_DATE"
+        date_condition = "ar.date = CURRENT_DATE"
         if time_filter == 'week':
-            date_condition = "a.attendance_date >= DATE_SUB(CURRENT_DATE, INTERVAL 7 DAY)"
+            date_condition = "ar.date >= DATE_SUB(CURRENT_DATE, INTERVAL 7 DAY)"
         elif time_filter == 'month':
-            date_condition = "a.attendance_date >= DATE_SUB(CURRENT_DATE, INTERVAL 30 DAY)"
+            date_condition = "ar.date >= DATE_SUB(CURRENT_DATE, INTERVAL 30 DAY)"
         elif time_filter == 'semester':
             date_condition = "1=1"  # All data
         
         # 1. Overall Statistics
         stats_query = f'''
             SELECT 
-                COUNT(DISTINCT u.id) as total_students,
-                COUNT(DISTINCT a.attendance_date) as total_sessions,
-                ROUND(AVG(CASE WHEN a.status = 'P' THEN 100 ELSE 0 END), 2) as avg_attendance,
-                COUNT(DISTINCT CASE WHEN att_pct.percentage < 75 THEN u.id END) as low_attendance_count
-            FROM users u
-            LEFT JOIN attendance a ON u.id = a.user_id AND {date_condition}
+                COUNT(DISTINCT s.id) as total_students,
+                COUNT(DISTINCT ar.date) as total_sessions,
+                ROUND(AVG(CASE WHEN ar.status = 'Present' THEN 100 ELSE 0 END), 2) as avg_attendance,
+                COUNT(DISTINCT CASE WHEN att_pct.percentage < 75 THEN s.id END) as low_attendance_count
+            FROM students s
+            LEFT JOIN attendance_records ar ON s.enrollment_no = ar.enrollment_no AND {date_condition}
             LEFT JOIN (
-                SELECT user_id, 
-                       ROUND(AVG(CASE WHEN status = 'P' THEN 100 ELSE 0 END), 2) as percentage
-                FROM attendance
-                GROUP BY user_id
-            ) att_pct ON u.id = att_pct.user_id
-            WHERE u.role = 'student'
+                SELECT enrollment_no, 
+                       ROUND(AVG(CASE WHEN status = 'Present' THEN 100 ELSE 0 END), 2) as percentage
+                FROM attendance_records
+                GROUP BY enrollment_no
+            ) att_pct ON s.enrollment_no = att_pct.enrollment_no
         '''
         
         stats_result = db.execute_query(stats_query)
@@ -1544,15 +1769,15 @@ def api_analytics_dashboard():
             'low_attendance_count': 0
         }
         
-        # 2. Attendance Trend (Last 7 days)
+        # 2. Attendance Trend (Last 10 days)
         trend_query = f'''
             SELECT 
-                a.attendance_date as date,
-                ROUND(AVG(CASE WHEN a.status = 'P' THEN 100 ELSE 0 END), 2) as attendance_percentage
-            FROM attendance a
+                ar.date as date,
+                ROUND(AVG(CASE WHEN ar.status = 'Present' THEN 100 ELSE 0 END), 2) as attendance_percentage
+            FROM attendance_records ar
             WHERE {date_condition}
-            GROUP BY a.attendance_date
-            ORDER BY a.attendance_date ASC
+            GROUP BY ar.date
+            ORDER BY ar.date ASC
             LIMIT 10
         '''
         
@@ -1566,37 +1791,36 @@ def api_analytics_dashboard():
                 trend_labels.append(date_str)
                 trend_data.append(float(row['attendance_percentage']) if row['attendance_percentage'] else 0)
         
-        # 3. Subject-wise Distribution
-        subject_query = f'''
+        # 3. Year-wise Distribution
+        year_query = '''
             SELECT 
-                c.course_name as subject,
-                COUNT(DISTINCT a.user_id) as student_count,
-                ROUND(AVG(CASE WHEN a.status = 'P' THEN 100 ELSE 0 END), 2) as attendance_percentage
-            FROM attendance a
-            LEFT JOIN courses c ON a.subject = c.course_name
-            WHERE {date_condition}
-            GROUP BY c.course_name
-            ORDER BY attendance_percentage DESC
-            LIMIT 5
+                s.year,
+                COUNT(DISTINCT s.id) as student_count,
+                ROUND(AVG(CASE WHEN ar.status = 'Present' THEN 100 ELSE 0 END), 2) as avg_attendance
+            FROM students s
+            LEFT JOIN attendance_records ar ON s.enrollment_no = ar.enrollment_no
+            GROUP BY s.year
+            ORDER BY s.year ASC
         '''
         
-        subject_result = db.execute_query(subject_query)
+        year_result = db.execute_query(year_query)
         subject_labels = []
         subject_data = []
         
-        if subject_result:
-            for row in subject_result:
-                subject_labels.append(row['subject'] if row['subject'] else 'Unknown')
-                subject_data.append(float(row['attendance_percentage']) if row['attendance_percentage'] else 0)
+        if year_result:
+            for row in year_result:
+                year_str = f"Year {row['year']}" if row['year'] else 'Unknown'
+                subject_labels.append(year_str)
+                subject_data.append(float(row['avg_attendance']) if row['avg_attendance'] else 0)
         
         # 4. Time-wise Attendance
         time_query = f'''
             SELECT 
-                HOUR(a.created_at) as hour,
-                ROUND(AVG(CASE WHEN a.status = 'P' THEN 100 ELSE 0 END), 2) as attendance_percentage
-            FROM attendance a
+                HOUR(ar.timestamp) as hour,
+                ROUND(AVG(CASE WHEN ar.status = 'Present' THEN 100 ELSE 0 END), 2) as attendance_percentage
+            FROM attendance_records ar
             WHERE {date_condition}
-            GROUP BY HOUR(a.created_at)
+            GROUP BY HOUR(ar.timestamp)
             ORDER BY hour ASC
         '''
         
@@ -1611,21 +1835,43 @@ def api_analytics_dashboard():
                 time_labels.append(time_label)
                 time_data.append(float(row['attendance_percentage']) if row['attendance_percentage'] else 0)
         
-        # 5. Department-wise (if department table exists)
-        department_labels = ['CSE', 'IT', 'ECE', 'MECH']
-        department_data = [85, 78, 82, 75]  # Mock data for now
+        # 5. Institute-wise Distribution
+        institute_query = '''
+            SELECT 
+                SUBSTRING_INDEX(s.institute, '-', 1) as dept,
+                COUNT(DISTINCT s.id) as student_count,
+                ROUND(AVG(CASE WHEN ar.status = 'Present' THEN 100 ELSE 0 END), 2) as avg_attendance
+            FROM students s
+            LEFT JOIN attendance_records ar ON s.enrollment_no = ar.enrollment_no
+            GROUP BY dept
+            ORDER BY avg_attendance DESC
+            LIMIT 5
+        '''
+        
+        institute_result = db.execute_query(institute_query)
+        department_labels = []
+        department_data = []
+        
+        if institute_result:
+            for row in institute_result:
+                department_labels.append(row['dept'] if row['dept'] else 'Unknown')
+                department_data.append(float(row['avg_attendance']) if row['avg_attendance'] else 0)
+        else:
+            # Fallback to default
+            department_labels = ['CSE', 'IT', 'ECE', 'MECH']
+            department_data = [85, 78, 82, 75]
         
         # 6. Recent Activity
         activity_query = f'''
             SELECT 
-                u.name as student_name,
-                a.subject,
-                a.created_at as timestamp,
-                a.status
-            FROM attendance a
-            JOIN users u ON a.user_id = u.id
+                s.full_name as student_name,
+                s.enrollment_no,
+                ar.timestamp,
+                ar.status
+            FROM attendance_records ar
+            JOIN students s ON ar.enrollment_no = s.enrollment_no
             WHERE {date_condition}
-            ORDER BY a.created_at DESC
+            ORDER BY ar.timestamp DESC
             LIMIT 10
         '''
         
@@ -1642,7 +1888,7 @@ def api_analytics_dashboard():
                 
                 recent_activity.append({
                     'student': row['student_name'],
-                    'subject': row['subject'] if row['subject'] else 'General',
+                    'subject': row['enrollment_no'],  # Using enrollment as identifier
                     'time': time_str,
                     'status': row['status']
                 })
@@ -1830,21 +2076,17 @@ def forbidden_error(error):
 
 if __name__ == '__main__':
     try:
-        # Initialize database
-        if db.connect():
-            db.create_tables()
-            db.insert_sample_data()
-            logger.info("Database initialized successfully")
-        else:
-            logger.error("Failed to initialize database")
-            sys.exit(1)
-        
+        with app.app_context():
+            if not db.initialize_database():
+                logger.error("Failed to initialize database")
+                sys.exit(1)
+            print_startup_banner(host='0.0.0.0', port=5000)
+
         logger.info("Starting SecureAttend Pro with QR-based attendance system...")
-        
-        # Start the SocketIO server
-        socketio.run(app, 
-                    host='0.0.0.0', 
-                    port=5000, 
+
+        socketio.run(app,
+                    host='0.0.0.0',
+                    port=5000,
                     debug=True,
                     allow_unsafe_werkzeug=True)
     except Exception as e:

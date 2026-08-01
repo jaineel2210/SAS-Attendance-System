@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}IoT Attendance Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3">IoT Attendance Dashboard</h1>
+            <p class="text-muted">Manage IoT-enabled attendance sessions and view device status.</p>
+        </div>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <strong>Available Devices</strong>
+                </div>
+                <div class="card-body">
+                    {% if devices %}
+                        <ul class="list-group list-group-flush">
+                            {% for device in devices %}
+                                <li class="list-group-item">
+                                    <strong>{{ device.device_name or 'Device ' ~ loop.index }}</strong><br>
+                                    IP: {{ device.ip_address or 'Unknown' }}<br>
+                                    Port: {{ device.port or 'Unknown' }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="alert alert-info mb-0">No IoT devices registered yet.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <strong>Active Sessions</strong>
+                </div>
+                <div class="card-body">
+                    {% if active_sessions %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Subject</th>
+                                        <th>Type</th>
+                                        <th>Location</th>
+                                        <th>Start Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for session in active_sessions %}
+                                        <tr>
+                                            <td>{{ session.subject or 'N/A' }}</td>
+                                            <td>{{ session.session_type or 'N/A' }}</td>
+                                            <td>{{ session.location or 'N/A' }}</td>
+                                            <td>{{ session.start_time or 'N/A' }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info mb-0">No active IoT sessions found.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mt-3">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <strong>Recent Sessions</strong>
+                </div>
+                <div class="card-body">
+                    {% if recent_sessions %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Subject</th>
+                                        <th>Type</th>
+                                        <th>Location</th>
+                                        <th>Start</th>
+                                        <th>End</th>
+                                        <th>Attendance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for session in recent_sessions %}
+                                        <tr>
+                                            <td>{{ session.subject or 'N/A' }}</td>
+                                            <td>{{ session.session_type or 'N/A' }}</td>
+                                            <td>{{ session.location or 'N/A' }}</td>
+                                            <td>{{ session.start_time or 'N/A' }}</td>
+                                            <td>{{ session.end_time or 'N/A' }}</td>
+                                            <td>{{ session.attendance_count or 0 }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info mb-0">No recent IoT attendance sessions to display.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

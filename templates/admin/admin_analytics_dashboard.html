@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Analytics Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Page Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+        <div>
+            <h2 class="mb-1"><i class="fas fa-chart-pie me-2 text-primary"></i>Advanced Analytics Dashboard</h2>
+            <p class="text-muted mb-0">Enterprise-grade attendance analytics, risk monitoring, and student performance insights.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('student_management.import_students_page') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-upload me-1"></i>Import Students
+            </a>
+            <a href="{{ url_for('student_management.export_students_list') }}" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-download me-1"></i>Export Students
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i>Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Basic Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stats-card border-0 shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="mb-1 opacity-75">Total Students</p>
+                            <h2 class="mb-0">{{ basic_stats.total_students or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-users fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card border-0 shadow-sm" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="mb-1 opacity-75">Total Records</p>
+                            <h2 class="mb-0">{{ basic_stats.total_attendance_records or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-clipboard-list fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card border-0 shadow-sm" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="mb-1 opacity-75">Avg Attendance</p>
+                            <h2 class="mb-0">{{ "%.1f"|format(basic_stats.average_attendance or 0) }}%</h2>
+                        </div>
+                        <i class="fas fa-chart-line fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card border-0 shadow-sm" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                <div class="card-body text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="mb-1 opacity-75">Below 75%</p>
+                            <h2 class="mb-0">{{ basic_stats.students_below_75 or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Institute Analytics and Surname Analytics -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="glass-card shadow-sm">
+                <div class="glass-card-header" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: white;">
+                    <h5 class="mb-0"><i class="fas fa-building me-2"></i>Institute-Based Analytics</h5>
+                </div>
+                <div class="card-body">
+                    {% if institute_analytics %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Institute</th>
+                                        <th>Total Students</th>
+                                        <th>Attendance %</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for inst in institute_analytics %}
+                                    <tr>
+                                        <td><strong>{{ inst.institute }}</strong></td>
+                                        <td>{{ inst.total_students }}</td>
+                                        <td>
+                                            <span class="badge bg-{% if inst.attendance_percentage >= 75 %}success{% elif inst.attendance_percentage >= 60 %}warning{% else %}danger{% endif %}">
+                                                {{ "%.1f"|format(inst.attendance_percentage or 0) }}%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center py-4">No data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="glass-card shadow-sm">
+                <div class="glass-card-header" style="background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%); color: white;">
+                    <h5 class="mb-0"><i class="fas fa-signature me-2"></i>Top 5 Common Surnames</h5>
+                </div>
+                <div class="card-body">
+                    {% if surname_analytics %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Surname</th>
+                                        <th>Count</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for surname in surname_analytics %}
+                                    <tr>
+                                        <td><span class="badge bg-primary">{{ loop.index }}</span></td>
+                                        <td><strong>{{ surname.last_name }}</strong></td>
+                                        <td>{{ surname.count }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center py-4">No data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Year-wise Distribution -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="glass-card shadow-sm">
+                <div class="glass-card-header" style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); color: white;">
+                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Year-Wise Student Distribution</h5>
+                </div>
+                <div class="card-body">
+                    {% if year_distribution %}
+                        <canvas id="yearChart" style="max-height: 300px;"></canvas>
+                    {% else %}
+                        <p class="text-muted text-center py-4">No data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Risk Detection System -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="glass-card shadow-sm">
+                <div class="glass-card-header" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white;">
+                    <h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Risk Detection System</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Risk Summary -->
+                    <div class="row mb-3 text-center">
+                        <div class="col-md-4">
+                            <div class="p-3 border border-danger rounded bg-danger bg-opacity-10">
+                                <h3 class="text-danger mb-1">{{ high_risk|length }}</h3>
+                                <p class="mb-0 text-danger"><strong>High Risk (&lt;60%)</strong></p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 border border-warning rounded bg-warning bg-opacity-10">
+                                <h3 class="text-warning mb-1">{{ medium_risk|length }}</h3>
+                                <p class="mb-0 text-warning"><strong>Medium Risk (60-75%)</strong></p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 border border-success rounded bg-success bg-opacity-10">
+                                <h3 class="text-success mb-1">{{ safe|length }}</h3>
+                                <p class="mb-0 text-success"><strong>Safe (&gt;75%)</strong></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- High Risk Students Table -->
+                    {% if high_risk %}
+                    <h6 class="text-danger"><i class="fas fa-exclamation-circle me-2"></i>High Risk Students</h6>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-danger">
+                                <tr>
+                                    <th>Enrollment No</th>
+                                    <th>Name</th>
+                                    <th>Total Sessions</th>
+                                    <th>Attended</th>
+                                    <th>Attendance %</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in high_risk[:10] %}
+                                <tr>
+                                    <td>{{ student.enrollment_no }}</td>
+                                    <td>{{ student.full_name }}</td>
+                                    <td>{{ student.total_sessions }}</td>
+                                    <td>{{ student.attended }}</td>
+                                    <td><span class="badge bg-danger">{{ "%.1f"|format(student.attendance_percentage) }}%</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Trend Graph -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%); color: white;">
+                    <h5 class="mb-0"><i class="fas fa-chart-area me-2"></i>Monthly Attendance Trend</h5>
+                </div>
+                <div class="card-body">
+                    {% if monthly_trend %}
+                        <canvas id="trendChart" style="max-height: 350px;"></canvas>
+                    {% else %}
+                        <p class="text-muted text-center py-4">No data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .stats-card {
+        transition: transform 0.3s;
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+    .card {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+<!-- Data injection from server -->
+<script type="application/json" id="yearDistributionData">{{ year_distribution|tojson|safe }}</script>
+<script type="application/json" id="monthlyTrendData">{{ monthly_trend|tojson|safe }}</script>
+
+<!-- Chart rendering JavaScript -->
+<script>
+// Parse data from JSON script tags
+const yearDistributionData = JSON.parse(document.getElementById('yearDistributionData').textContent || '[]');
+const monthlyTrendData = JSON.parse(document.getElementById('monthlyTrendData').textContent || '[]');
+
+// Year Distribution Chart
+if (yearDistributionData && yearDistributionData.length > 0) {
+    const yearLabels = yearDistributionData.map(item => item.year);
+    const yearCounts = yearDistributionData.map(item => item.count);
+    
+    const yearCtx = document.getElementById('yearChart').getContext('2d');
+    const yearChart = new Chart(yearCtx, {
+        type: 'bar',
+        data: {
+            labels: yearLabels,
+            datasets: [{
+                label: 'Number of Students',
+                data: yearCounts,
+                backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                borderColor: 'rgba(13, 110, 253, 1)',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Monthly Trend Chart
+if (monthlyTrendData && monthlyTrendData.length > 0) {
+    const trendLabels = monthlyTrendData.map(item => item.month);
+    const trendValues = monthlyTrendData.map(item => item.attendance_percentage);
+    
+    const trendCtx = document.getElementById('trendChart').getContext('2d');
+    const trendChart = new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: trendLabels,
+            datasets: [{
+                label: 'Attendance Percentage',
+                data: trendValues,
+                backgroundColor: 'rgba(111, 66, 193, 0.2)',
+                borderColor: 'rgba(111, 66, 193, 1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: true
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

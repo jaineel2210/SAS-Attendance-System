@@ -34,9 +34,9 @@ def faculty_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
-            return redirect(url_for('auth.login'))
+            return redirect(url_for('login'))
         if session.get('role') != 'faculty':
-            return redirect(url_for('auth.login'))
+            return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -188,7 +188,7 @@ def iot_dashboard():
         faculty_info = db.execute_query(faculty_query, (faculty_id,))
         
         if not faculty_info:
-            return redirect(url_for('auth.login'))
+            return redirect(url_for('login'))
         
         faculty = faculty_info[0]
         

@@ -3,16 +3,17 @@
 {% block title %}Login - SecureAttend Pro{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-5">
-            <div class="card shadow-lg">
-                <div class="card-header bg-primary text-white text-center py-4">
-                    <h3 class="mb-0">
-                        <i class="fas fa-sign-in-alt me-2"></i>Login to SecureAttend Pro
+        <div class="col-md-7 col-lg-6">
+            <div class="glass-card overflow-hidden">
+                <div class="glass-card-header text-center py-4">
+                    <h3 class="mb-2 fw-bold">
+                        <i class="fas fa-sign-in-alt me-2"></i>SecureAttend Pro Login
                     </h3>
+                    <p class="text-muted mb-0">Secure access for students, faculty, and administrators.</p>
                 </div>
-                <div class="card-body p-4">
+                <div class="card-body px-5 py-4">
                     <form method="POST" id="loginForm" action="{{ url_for('login') }}"
                           data-has-otp="{{ 'true' if session.get('temp_admin_mobile') else 'false' }}"
                           data-resend-url="{{ url_for('enhanced_registration.resend_otp', role=session.get('temp_role', '')) }}">
@@ -47,7 +48,7 @@
 
                         <!-- Common Fields -->
                         <div class="mb-3">
-                            <label for="identifier" class="form-label">Enrollment No. / Mobile Number / Faculty ID</label>
+                            <label for="identifier" class="form-label">Enrollment No. / Admin ID / Faculty ID</label>
                             <input type="text" class="form-control" id="identifier" name="identifier" required
                                    placeholder="Enter enrollment number or mobile number"
                                    value="{{ session.get('temp_admin_identifier', '') }}">
@@ -57,7 +58,14 @@
                             <label for="password" class="form-label">Password</label>
                             <input type="password" class="form-control" id="password" name="password"
                                    placeholder="Enter your password">
+                            <div class="form-text mt-2">
+                                <a href="{{ url_for('forgot_password') }}" class="text-decoration-none">
+                                    <i class="fas fa-unlock-alt me-1"></i>Forgot Password?
+                                </a>
+                            </div>
                         </div>
+
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                         <!-- Admin-specific fields -->
                         <div class="mb-3 d-none" id="adminMobileField">
@@ -149,15 +157,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     <!-- Demo Credentials -->
                     <div class="mt-4">
-                        <div class="card bg-light">
-                            <div class="card-body">
-                                <h6 class="card-title">Demo Credentials</h6>
-                                <small class="text-muted">
-                                    <strong>Admin:</strong> ADMIN001 / admin123<br>
-                                    <strong>Faculty:</strong> Create via admin panel<br>
-                                    <strong>Student:</strong> Register new account
-                                </small>
-                            </div>
+                        <div class="glass-panel p-4">
+                            <h6 class="mb-2">Demo Credentials</h6>
+                            <small class="text-muted">
+                                <strong>Admin:</strong> ADMIN001 / admin123<br>
+                                <strong>Faculty:</strong> Create via admin panel<br>
+                                <strong>Student:</strong> Register new account
+                            </small>
                         </div>
                     </div>
                 </div>

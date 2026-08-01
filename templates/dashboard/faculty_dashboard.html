@@ -1,165 +1,145 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Faculty Dashboard - SecureAttend Pro{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row">
-        <!-- Welcome Section -->
-        <div class="col-12 mb-4">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col">
-                            <h4 class="mb-1 text-white">Welcome, Prof. {{ session.username }}!</h4>
-                            <p class="mb-0 text-white">Faculty Dashboard</p>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-chalkboard-teacher fa-3x opacity-75"></i>
-                        </div>
+
+<div class="container-fluid py-5">
+    <div class="page-heading">
+        <div>
+            <span class="badge badge-pill bg-primary mb-2">Faculty Console</span>
+            <h1 class="display-6 fw-bold">Welcome, Prof. {{ session.username }}!</h1>
+            <p class="text-muted mb-0">Manage sessions, attendance, and classroom insights from one polished dashboard.</p>
+        </div>
+        <div class="text-end">
+            <span class="badge badge-pill bg-secondary">{{ today }}</span>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-6 col-xl-3">
+            <div class="glass-card p-4 text-center">
+                <div class="mb-3 text-primary"><i class="fas fa-users fa-2x"></i></div>
+                <div class="h2 fw-bold">{% if class_summary %}{% set total_present = class_summary | sum(attribute='present_students') %}{{ total_present }}{% else %}0{% endif %}</div>
+                <p class="text-muted mb-0">Students Present Today</p>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="glass-card p-4 text-center">
+                <div class="mb-3 text-success"><i class="fas fa-book fa-2x"></i></div>
+                <div class="h2 fw-bold">{{ class_summary | length if class_summary else 0 }}</div>
+                <p class="text-muted mb-0">Classes Today</p>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="glass-card p-4 text-center">
+                <div class="mb-3 text-info"><i class="fas fa-percentage fa-2x"></i></div>
+                <div class="h2 fw-bold">
+                    {% if class_summary %}
+                        {% set avg_percentage = (class_summary | sum(attribute='percentage')) / (class_summary | length) %}
+                        {{ "%.1f" | format(avg_percentage) }}%
+                    {% else %}
+                        0%
+                    {% endif %}
+                </div>
+                <p class="text-muted mb-0">Average Attendance</p>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="glass-card p-4 text-center">
+                <div class="mb-3 text-warning"><i class="fas fa-clock fa-2x"></i></div>
+                <div class="h2 fw-bold" id="currentTime">Loading...</div>
+                <p class="text-muted mb-0">Current Time</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <div class="d-flex align-items-start gap-3 mb-4">
+                    <div class="p-3 rounded-4 bg-primary text-white"><i class="fas fa-bolt fa-2x"></i></div>
+                    <div>
+                        <h3 class="h5 mb-1">Quick Actions</h3>
+                        <p class="text-muted mb-0">Launch attendance sessions or review analytics in one click.</p>
                     </div>
+                </div>
+                <div class="d-grid gap-3">
+                    <a href="{{ url_for('take_attendance') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-users me-2"></i>Take Attendance
+                    </a>
+                    <a href="{{ url_for('analytics_page') }}" class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-chart-line me-2"></i>View Analytics
+                    </a>
                 </div>
             </div>
         </div>
-
-        <!-- Quick Actions -->
-        <div class="col-lg-6 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <a href="{{ url_for('take_attendance') }}" class="btn btn-primary">
-                            <i class="fas fa-users me-2"></i>Take Attendance
-                        </a>
-                        <a href="{{ url_for('analytics_page') }}" class="btn btn-info">
-                            <i class="fas fa-chart-line me-2"></i>View Analytics
-                        </a>
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100">
+                <div class="d-flex align-items-start gap-3 mb-4">
+                    <div class="p-3 rounded-4 bg-info text-white"><i class="fas fa-calendar-day fa-2x"></i></div>
+                    <div>
+                        <h3 class="h5 mb-1">Today's Classes</h3>
+                        <p class="text-muted mb-0">Summary of scheduled sessions and attendance progress.</p>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Today's Classes Summary -->
-        <div class="col-lg-6 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-calendar-day me-2"></i>Today's Classes ({{ today }})</h5>
-                </div>
-                <div class="card-body">
-                    {% if class_summary and class_summary|length > 0 %}
+                {% if class_summary and class_summary|length > 0 %}
+                    <div class="row gy-3">
                         {% for class_data in class_summary %}
-                        <div class="d-flex justify-content-between align-items-center mb-3 p-2 border rounded">
-                            <div>
-                                <h6 class="mb-1">{{ class_data.subject }}</h6>
-                                <small class="text-muted">{{ class_data.session_type|default('lecture')|title }}</small>
-                            </div>
-                            <div class="text-end">
-                                <div class="fw-bold">{{ class_data.present_students|default(0) }}/{{ class_data.total_students|default(0) }}</div>
-                                <small class="text-muted">{{ class_data.percentage|default(0) }}% Present</small>
+                        <div class="col-12">
+                            <div class="glass-card p-3 border-0">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">{{ class_data.subject }}</h6>
+                                        <small class="text-muted">{{ class_data.session_type|default('lecture')|title }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="fw-semibold">{{ class_data.present_students|default(0) }}/{{ class_data.total_students|default(0) }}</div>
+                                        <small class="text-muted">{{ class_data.percentage|default(0) }}% Present</small>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         {% endfor %}
-                    {% else %}
-                        <div class="text-center text-muted">
-                            <i class="fas fa-calendar-times fa-3x mb-3"></i>
-                            <p>No classes scheduled for today</p>
-                        </div>
-                    {% endif %}
-                </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                        <p class="mb-0">No classes scheduled for today.</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
 
-    <!-- Attendance Statistics -->
-    <div class="row">
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card border-primary">
-                <div class="card-body text-center">
-                    <div class="text-primary mb-2">
-                        <i class="fas fa-users fa-2x"></i>
-                    </div>
-                    <h3 class="fw-bold text-primary">
-                        {% set total_present = class_summary | sum(attribute='present_students') %}
-                        {{ total_present }}
-                    </h3>
-                    <p class="text-muted mb-0">Students Present Today</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card border-success">
-                <div class="card-body text-center">
-                    <div class="text-success mb-2">
-                        <i class="fas fa-book fa-2x"></i>
-                    </div>
-                    <h3 class="fw-bold text-success">{{ class_summary | length }}</h3>
-                    <p class="text-muted mb-0">Classes Today</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card border-info">
-                <div class="card-body text-center">
-                    <div class="text-info mb-2">
-                        <i class="fas fa-percentage fa-2x"></i>
-                    </div>
-                    <h3 class="fw-bold text-info">
-                        {% if class_summary %}
-                            {% set avg_percentage = (class_summary | sum(attribute='percentage')) / (class_summary | length) %}
-                            {{ "%.1f" | format(avg_percentage) }}%
-                        {% else %}
-                            0%
-                        {% endif %}
-                    </h3>
-                    <p class="text-muted mb-0">Average Attendance</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card border-warning">
-                <div class="card-body text-center">
-                    <div class="text-warning mb-2">
-                        <i class="fas fa-clock fa-2x"></i>
-                    </div>
-                    <h3 class="fw-bold text-warning" id="currentTime">Loading...</h3>
-                    <p class="text-muted mb-0">Current Time</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Instructions -->
-    <div class="row">
+    <div class="row g-4">
         <div class="col-12">
-            <div class="card border-info">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Faculty Instructions</h5>
+            <div class="glass-card p-4">
+                <div class="d-flex align-items-start gap-3 mb-4">
+                    <div class="p-3 rounded-4 bg-info text-white"><i class="fas fa-info-circle fa-2x"></i></div>
+                    <div>
+                        <h3 class="h5 mb-1">Faculty Instructions</h3>
+                        <p class="text-muted mb-0">Best practices for operating attendance sessions smoothly.</p>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6><i class="fas fa-play-circle text-success me-2"></i>Starting a Session</h6>
-                            <ul class="list-unstyled">
-                                <li><i class="fas fa-arrow-right text-primary me-2"></i>Select subject and session type</li>
-                                <li><i class="fas fa-arrow-right text-primary me-2"></i>Click "Start Attendance Session"</li>
-                                <li><i class="fas fa-arrow-right text-primary me-2"></i>RFID reader will be activated</li>
-                                <li><i class="fas fa-arrow-right text-primary me-2"></i>Students can begin marking attendance</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h6><i class="fas fa-user-check text-warning me-2"></i>Taking Attendance</h6>
-                            <ul class="list-unstyled">
-                                <li><i class="fas fa-arrow-right text-warning me-2"></i>Monitor face recognition system</li>
-                                <li><i class="fas fa-arrow-right text-warning me-2"></i>Verify RFID card scanning</li>
-                                <li><i class="fas fa-arrow-right text-warning me-2"></i>View real-time attendance count</li>
-                                <li><i class="fas fa-arrow-right text-warning me-2"></i>End session when complete</li>
-                            </ul>
-                        </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="fw-semibold mb-3"><i class="fas fa-play-circle text-success me-2"></i>Starting a Session</h6>
+                        <ul class="list-unstyled text-muted">
+                            <li class="mb-2"><i class="fas fa-arrow-right text-primary me-2"></i>Select subject and session type.</li>
+                            <li class="mb-2"><i class="fas fa-arrow-right text-primary me-2"></i>Click "Start Attendance Session."</li>
+                            <li class="mb-2"><i class="fas fa-arrow-right text-primary me-2"></i>Activate RFID and face recognition.</li>
+                            <li><i class="fas fa-arrow-right text-primary me-2"></i>Allow students to begin marking attendance.</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="fw-semibold mb-3"><i class="fas fa-user-check text-warning me-2"></i>Taking Attendance</h6>
+                        <ul class="list-unstyled text-muted">
+                            <li class="mb-2"><i class="fas fa-arrow-right text-warning me-2"></i>Monitor attendance counts in real time.</li>
+                            <li class="mb-2"><i class="fas fa-arrow-right text-warning me-2"></i>Verify RFID scans and face matches.</li>
+                            <li class="mb-2"><i class="fas fa-arrow-right text-warning me-2"></i>Review student presence data clearly.</li>
+                            <li><i class="fas fa-arrow-right text-warning me-2"></i>Close the session when complete.</li>
+                        </ul>
                     </div>
                 </div>
             </div>
@@ -168,20 +148,13 @@
 </div>
 
 <script>
-// Update current time
 function updateCurrentTime() {
     const now = new Date();
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
     document.getElementById('currentTime').textContent = `${hours}:${minutes}`;
 }
-
-// Update time immediately and then every minute
 updateCurrentTime();
 setInterval(updateCurrentTime, 60000);
-// Auto-refresh page every 30 seconds to update attendance counts
-setInterval(function() {
-    location.reload();
-}, 30000);
 </script>
 {% endblock %}

@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Import Students - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-file-upload me-2" style="color: #0d6efd;"></i>Import Student Data</h2>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                </a>
+            </div>
+
+            <!-- Instructions Card -->
+            <div class="card mb-4 border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>CSV Format Instructions</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">Your CSV file should contain the following columns:</p>
+                    <ul>
+                        <li><strong>Srno</strong> - Serial Number</li>
+                        <li><strong>Institute</strong> - Institute name (default: SOCET)</li>
+                        <li><strong>Enrollment No</strong> - Unique enrollment number</li>
+                        <li><strong>Student Full Name</strong> - Complete student name</li>
+                    </ul>
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Note:</strong> The system will automatically split names and extract year from enrollment numbers. Duplicate entries will be skipped.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload Card -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-cloud-upload-alt me-2"></i>Upload CSV File</h5>
+                </div>
+                <div class="card-body">
+                    <form id="csvUploadForm" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="csvFile" class="form-label">Select CSV File</label>
+                            <input type="file" class="form-control" id="csvFile" name="csv_file" accept=".csv" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg" id="uploadBtn">
+                            <i class="fas fa-upload me-2"></i>Upload and Process
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div id="progressSection" class="card mt-4" style="display: none;">
+                <div class="card-body">
+                    <h5>Processing...</h5>
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Card -->
+            <div id="resultsSection" class="card mt-4" style="display: none;">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Import Results</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center mb-4">
+                        <div class="col-md-3">
+                            <div class="p-3 bg-light rounded">
+                                <h2 id="totalProcessed" class="text-primary mb-0">0</h2>
+                                <p class="mb-0">Total Processed</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 bg-light rounded">
+                                <h2 id="successCount" class="text-success mb-0">0</h2>
+                                <p class="mb-0">Successfully Inserted</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 bg-light rounded">
+                                <h2 id="duplicateCount" class="text-warning mb-0">0</h2>
+                                <p class="mb-0">Duplicates Skipped</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 bg-light rounded">
+                                <h2 id="errorCount" class="text-danger mb-0">0</h2>
+                                <p class="mb-0">Errors</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Messages -->
+                    <div id="messagesSection" style="display: none;">
+                        <h6>Messages:</h6>
+                        <div id="messagesList" class="alert alert-info"></div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('student_management.admin_analytics') }}" class="btn btn-primary">
+                            <i class="fas fa-chart-line me-1"></i>View Analytics
+                        </a>
+                        <button class="btn btn-secondary" onclick="location.reload()">
+                            <i class="fas fa-redo me-1"></i>Upload Another File
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-radius: 8px;
+    }
+    .card-header {
+        border-radius: 8px 8px 0 0 !important;
+    }
+</style>
+
+<script>
+document.getElementById('csvUploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    const fileInput = document.getElementById('csvFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('Please select a CSV file');
+        return;
+    }
+    
+    formData.append('csv_file', file);
+    
+    // Show progress
+    document.getElementById('progressSection').style.display = 'block';
+    document.getElementById('uploadBtn').disabled = true;
+    
+    // Upload file
+    fetch('{{ url_for("student_management.upload_csv") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Hide progress
+        document.getElementById('progressSection').style.display = 'none';
+        document.getElementById('uploadBtn').disabled = false;
+        
+        if (data.success) {
+            // Show results
+            document.getElementById('resultsSection').style.display = 'block';
+            document.getElementById('totalProcessed').textContent = data.total_processed;
+            document.getElementById('successCount').textContent = data.success_count;
+            document.getElementById('duplicateCount').textContent = data.duplicate_count;
+            document.getElementById('errorCount').textContent = data.error_count;
+            
+            // Show messages if any
+            if (data.messages && data.messages.length > 0) {
+                document.getElementById('messagesSection').style.display = 'block';
+                document.getElementById('messagesList').innerHTML = data.messages.join('<br>');
+            }
+        } else {
+            alert('Upload failed: ' + data.message);
+        }
+    })
+    .catch(error => {
+        document.getElementById('progressSection').style.display = 'none';
+        document.getElementById('uploadBtn').disabled = false;
+        alert('Error uploading file: ' + error);
+    });
+});
+</script>
+{% endblock %}

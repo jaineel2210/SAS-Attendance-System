@@ -36,38 +36,32 @@
         </div>
         
         <div class="col-md-4 mb-4">
-            <div class="card h-100 text-center">
-                <div class="card-body">
-                    <div class="feature-icon mb-3">
-                        <i class="fas fa-face-smile fa-3x text-primary"></i>
-                    </div>
-                    <h5 class="card-title">Face Recognition</h5>
-                    <p class="card-text">Advanced facial recognition technology for secure and contactless attendance marking.</p>
+            <div class="glass-card h-100 text-center p-4">
+                <div class="feature-icon mb-3">
+                    <i class="fas fa-face-smile fa-3x text-primary"></i>
                 </div>
+                <h5 class="mb-3">Face Recognition</h5>
+                <p class="text-muted">Advanced facial recognition technology for secure and contactless attendance marking.</p>
             </div>
         </div>
         
         <div class="col-md-4 mb-4">
-            <div class="card h-100 text-center">
-                <div class="card-body">
-                    <div class="feature-icon mb-3">
-                        <i class="fas fa-id-card fa-3x text-success"></i>
-                    </div>
-                    <h5 class="card-title">RFID Integration</h5>
-                    <p class="card-text">Quick and reliable RFID card scanning for fast attendance verification.</p>
+            <div class="glass-card h-100 text-center p-4">
+                <div class="feature-icon mb-3">
+                    <i class="fas fa-id-card fa-3x text-success"></i>
                 </div>
+                <h5 class="mb-3">RFID Integration</h5>
+                <p class="text-muted">Quick and reliable RFID card scanning for fast attendance verification.</p>
             </div>
         </div>
         
         <div class="col-md-4 mb-4">
-            <div class="card h-100 text-center">
-                <div class="card-body">
-                    <div class="feature-icon mb-3">
-                        <i class="fas fa-shield-alt fa-3x text-warning"></i>
-                    </div>
-                    <h5 class="card-title">OTP Security</h5>
-                    <p class="card-text">Two-factor authentication with OTP verification for enhanced security.</p>
+            <div class="glass-card h-100 text-center p-4">
+                <div class="feature-icon mb-3">
+                    <i class="fas fa-shield-alt fa-3x text-warning"></i>
                 </div>
+                <h5 class="mb-3">OTP Security</h5>
+                <p class="text-muted">Two-factor authentication with OTP verification for enhanced security.</p>
             </div>
         </div>
     </div>
@@ -134,9 +128,9 @@
         </div>
         
         <div class="col-md-4 mb-4">
-            <div class="card border-primary">
-                <div class="card-header bg-primary text-white text-center">
-                    <i class="fas fa-user-shield fa-2x mb-2"></i>
+            <div class="glass-card h-100 overflow-hidden">
+                <div class="glass-card-header text-center py-4">
+                    <i class="fas fa-user-shield fa-2x mb-2 text-primary"></i>
                     <h5>Administrator</h5>
                 </div>
                 <div class="card-body">
@@ -152,9 +146,9 @@
         </div>
         
         <div class="col-md-4 mb-4">
-            <div class="card border-success">
-                <div class="card-header bg-success text-white text-center">
-                    <i class="fas fa-chalkboard-teacher fa-2x mb-2"></i>
+            <div class="glass-card h-100 overflow-hidden">
+                <div class="glass-card-header text-center py-4">
+                    <i class="fas fa-chalkboard-teacher fa-2x mb-2 text-success"></i>
                     <h5>Faculty</h5>
                 </div>
                 <div class="card-body">
@@ -170,9 +164,9 @@
         </div>
         
         <div class="col-md-4 mb-4">
-            <div class="card border-info">
-                <div class="card-header bg-info text-white text-center">
-                    <i class="fas fa-user-graduate fa-2x mb-2"></i>
+            <div class="glass-card h-100 overflow-hidden">
+                <div class="glass-card-header text-center py-4">
+                    <i class="fas fa-user-graduate fa-2x mb-2 text-info"></i>
                     <h5>Student</h5>
                 </div>
                 <div class="card-body">
@@ -191,18 +185,16 @@
     <!-- Getting Started Section -->
     <div class="row">
         <div class="col-12">
-            <div class="card bg-light">
-                <div class="card-body text-center py-5">
-                    <h3 class="fw-bold mb-3">Ready to Get Started?</h3>
-                    <p class="lead mb-4">Join thousands of institutions using SecureAttend Pro for accurate attendance management.</p>
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                        <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg me-md-2">
-                            <i class="fas fa-rocket me-2"></i>Start Registration
-                        </a>
-                        <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-lg">
-                            <i class="fas fa-sign-in-alt me-2"></i>Login to Dashboard
-                        </a>
-                    </div>
+            <div class="glass-panel p-5 text-center">
+                <h3 class="fw-bold mb-3">Ready to Get Started?</h3>
+                <p class="lead mb-4 text-muted">Join thousands of institutions using SecureAttend Pro for accurate attendance management.</p>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg me-md-2">
+                        <i class="fas fa-rocket me-2"></i>Start Registration
+                    </a>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login to Dashboard
+                    </a>
                 </div>
             </div>
         </div>

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Error - SecureAttend Pro{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="glass-card text-center p-5">
+                <div class="mb-4">
+                    <i class="fas fa-exclamation-circle fa-4x text-danger"></i>
+                </div>
+                <h2 class="fw-bold mb-3">Something went wrong</h2>
+                <p class="text-muted mb-4">The dashboard failed to load correctly. Our system has logged the error and you can try again.</p>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg me-2"><i class="fas fa-sync-alt me-2"></i>Reload Dashboard</a>
+                <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-lg"><i class="fas fa-sign-out-alt me-2"></i>Return to Login</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
