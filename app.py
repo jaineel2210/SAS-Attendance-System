@@ -508,14 +508,14 @@ def forgot_password():
     role = request.form.get('role', '').strip() or None
     session_data = session.get('password_reset') or {}
 
-    def render(step_name, identifier_override=None, **context):
+    def render(step_name,identifier_override=None,role_override=None,**context):
         return render_template(
-            'forgot_password.html',
-            step=step_name,
-            role=role or '',
-            identifier=identifier_override or identifier or session_data.get('identifier'),
-            **context
-        )
+        'forgot_password.html',
+        step=step_name,
+        role=role_override or role or session_data.get('role') or '',
+        identifier=identifier_override or identifier or session_data.get('identifier'),
+        **context
+    )
 
     if step == 'request_otp':
         if not identifier:
@@ -583,7 +583,11 @@ def forgot_password():
         session['password_reset_verified'] = True
         session.modified = True
         flash('OTP verified successfully. Set a new password below.', 'success')
-        return render('reset_password', identifier_override=session_data.get('identifier'), role=session_data.get('role'))
+        return render(
+    'reset_password',
+    identifier_override=session_data.get('identifier'),
+    role=session_data.get('role')
+)
 
     if step == 'reset_password':
         if not session_data or not session.get('password_reset_verified'):
@@ -595,21 +599,33 @@ def forgot_password():
 
         if not password or not confirm_password:
             flash('Please enter and confirm your new password.', 'error')
-            return render('reset_password', identifier_override=session_data.get('identifier'), role=session_data.get('role'))
-
+            return render(
+    'reset_password',
+    identifier_override=session_data.get('identifier'),
+    role=session_data.get('role')
+)
         if password != confirm_password:
             flash('Passwords do not match. Please try again.', 'error')
-            return render('reset_password', identifier_override=session_data.get('identifier'), role=session_data.get('role'))
-
+            return render(
+    'reset_password',
+    identifier_override=session_data.get('identifier'),
+    role=session_data.get('role')
+)
         if not auth_manager.is_strong_password(password):
             flash('Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character.', 'error')
-            return render('reset_password', identifier_override=session_data.get('identifier'), role=session_data.get('role'))
-
+            return render(
+    'reset_password',
+    identifier_override=session_data.get('identifier'),
+    role=session_data.get('role')
+)
         reset_success, reset_message = auth_manager.reset_user_password(session_data['user_id'], password)
         if not reset_success:
             flash(reset_message, 'error')
-            return render('reset_password', identifier_override=session_data.get('identifier'), role=session_data.get('role'))
-
+            return render(
+    'reset_password',
+    identifier_override=session_data.get('identifier'),
+    role=session_data.get('role')
+)
         session.pop('password_reset', None)
         session.pop('password_reset_verified', None)
         flash('Your password has been reset successfully. Please login with your new password.', 'success')

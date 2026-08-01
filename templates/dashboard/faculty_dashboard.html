@@ -3,143 +3,487 @@
 {% block title %}Faculty Dashboard - SecureAttend Pro{% endblock %}
 
 {% block content %}
+<style>
+    .faculty-dashboard {
+        position: relative;
+        padding: 1.25rem 0 2.5rem;
+    }
 
-<div class="container-fluid py-5">
-    <div class="page-heading">
-        <div>
-            <span class="badge badge-pill bg-primary mb-2">Faculty Console</span>
-            <h1 class="display-6 fw-bold">Welcome, Prof. {{ session.username }}!</h1>
-            <p class="text-muted mb-0">Manage sessions, attendance, and classroom insights from one polished dashboard.</p>
-        </div>
-        <div class="text-end">
-            <span class="badge badge-pill bg-secondary">{{ today }}</span>
-        </div>
-    </div>
+    .faculty-dashboard::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+            radial-gradient(circle at top left, rgba(59, 130, 246, 0.10), transparent 30%),
+            radial-gradient(circle at top right, rgba(20, 184, 166, 0.10), transparent 28%);
+    }
 
-    <div class="row g-4 mb-4">
-        <div class="col-md-6 col-xl-3">
-            <div class="glass-card p-4 text-center">
-                <div class="mb-3 text-primary"><i class="fas fa-users fa-2x"></i></div>
-                <div class="h2 fw-bold">{% if class_summary %}{% set total_present = class_summary | sum(attribute='present_students') %}{{ total_present }}{% else %}0{% endif %}</div>
-                <p class="text-muted mb-0">Students Present Today</p>
-            </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="glass-card p-4 text-center">
-                <div class="mb-3 text-success"><i class="fas fa-book fa-2x"></i></div>
-                <div class="h2 fw-bold">{{ class_summary | length if class_summary else 0 }}</div>
-                <p class="text-muted mb-0">Classes Today</p>
-            </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="glass-card p-4 text-center">
-                <div class="mb-3 text-info"><i class="fas fa-percentage fa-2x"></i></div>
-                <div class="h2 fw-bold">
-                    {% if class_summary %}
-                        {% set avg_percentage = (class_summary | sum(attribute='percentage')) / (class_summary | length) %}
-                        {{ "%.1f" | format(avg_percentage) }}%
-                    {% else %}
-                        0%
-                    {% endif %}
-                </div>
-                <p class="text-muted mb-0">Average Attendance</p>
-            </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="glass-card p-4 text-center">
-                <div class="mb-3 text-warning"><i class="fas fa-clock fa-2x"></i></div>
-                <div class="h2 fw-bold" id="currentTime">Loading...</div>
-                <p class="text-muted mb-0">Current Time</p>
-            </div>
-        </div>
-    </div>
+    .faculty-shell {
+        position: relative;
+        z-index: 1;
+    }
 
-    <div class="row g-4 mb-4">
-        <div class="col-lg-6">
-            <div class="glass-card p-4 h-100">
-                <div class="d-flex align-items-start gap-3 mb-4">
-                    <div class="p-3 rounded-4 bg-primary text-white"><i class="fas fa-bolt fa-2x"></i></div>
-                    <div>
-                        <h3 class="h5 mb-1">Quick Actions</h3>
-                        <p class="text-muted mb-0">Launch attendance sessions or review analytics in one click.</p>
+    .page-heading,
+    .stat-card,
+    .quick-action-card,
+    .section-card,
+    .class-card,
+    .instruction-card,
+    .empty-state {
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: rgba(255, 255, 255, 0.76);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+        border-radius: 1.35rem;
+        transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+    }
+
+    .page-heading:hover,
+    .stat-card:hover,
+    .quick-action-card:hover,
+    .section-card:hover,
+    .class-card:hover,
+    .instruction-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 26px 70px rgba(15, 23, 42, 0.12);
+        border-color: rgba(59, 130, 246, 0.22);
+    }
+
+    .page-heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        padding: 1.35rem 1.5rem;
+    }
+
+    .page-heading .badge {
+        padding: 0.55rem 0.9rem;
+        border-radius: 999px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+    }
+
+    .page-heading h1 {
+        letter-spacing: -0.04em;
+        line-height: 1.05;
+    }
+
+    .page-heading p,
+    .section-subtitle,
+    .stat-label,
+    .text-muted,
+    .instruction-card li,
+    .class-card small {
+        color: #64748b;
+    }
+
+    .page-today {
+        padding: 0.8rem 1rem;
+        border-radius: 999px;
+        border: 1px solid rgba(59, 130, 246, 0.16);
+        background: rgba(59, 130, 246, 0.08);
+        color: #1d4ed8;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+    }
+
+    .stat-card {
+        position: relative;
+        overflow: hidden;
+        padding: 1.3rem;
+    }
+
+    .stat-card::after {
+        content: '';
+        position: absolute;
+        right: -2rem;
+        bottom: -2.2rem;
+        width: 8rem;
+        height: 8rem;
+        border-radius: 999px;
+        background: rgba(59, 130, 246, 0.08);
+        pointer-events: none;
+    }
+
+    .stat-icon,
+    .action-icon,
+    .instruction-step {
+        width: 3.25rem;
+        height: 3.25rem;
+        border-radius: 1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .stat-icon {
+        background: rgba(59, 130, 246, 0.10);
+        color: #1d4ed8;
+    }
+
+    .stat-value {
+        letter-spacing: -0.05em;
+        line-height: 1;
+    }
+
+    .stat-label {
+        font-weight: 700;
+        font-size: 0.92rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .quick-action-card,
+    .section-card,
+    .instruction-card {
+        padding: 1.35rem;
+    }
+
+    .quick-action-card .btn {
+        min-height: 3.35rem;
+        border-radius: 1rem;
+        font-weight: 700;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .quick-action-card .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 28px rgba(37, 99, 235, 0.16);
+    }
+
+    .action-icon {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(20, 184, 166, 0.12));
+        color: #1d4ed8;
+    }
+
+    .section-title {
+        font-weight: 800;
+        letter-spacing: -0.03em;
+    }
+
+    .class-card {
+        padding: 1rem 1.05rem;
+    }
+
+    .class-count {
+        font-size: 1.05rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+    }
+
+    .class-card .progress {
+        height: 0.72rem;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.14);
+    }
+
+    .class-card .progress-bar {
+        border-radius: 999px;
+    }
+
+    .class-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-top: 0.55rem;
+    }
+
+    .class-meta .badge {
+        border-radius: 999px;
+        padding: 0.42rem 0.72rem;
+        font-weight: 700;
+    }
+
+    .instruction-step {
+        background: rgba(59, 130, 246, 0.10);
+        color: #1d4ed8;
+        font-weight: 800;
+    }
+
+    .instruction-card li + li {
+        margin-top: 0.8rem;
+    }
+
+    .empty-state {
+        padding: 2.6rem 1.25rem;
+        border: 1px dashed rgba(148, 163, 184, 0.28);
+        background: rgba(248, 250, 252, 0.9);
+    }
+
+    .empty-state i {
+        color: #94a3b8;
+    }
+
+    @media (max-width: 991.98px) {
+        .page-heading {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .page-today {
+            align-self: flex-start;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .faculty-dashboard {
+            padding-top: 0.5rem;
+        }
+
+        .page-heading,
+        .stat-card,
+        .quick-action-card,
+        .section-card,
+        .class-card,
+        .instruction-card,
+        .empty-state {
+            border-radius: 1.1rem;
+        }
+
+        .page-heading {
+            padding: 1.15rem 1rem;
+        }
+
+        .page-heading h1 {
+            font-size: 1.8rem;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+        }
+    }
+
+    @media (prefers-color-scheme: dark) {
+        .faculty-dashboard::before {
+            background:
+                radial-gradient(circle at top left, rgba(59, 130, 246, 0.12), transparent 30%),
+                radial-gradient(circle at top right, rgba(20, 184, 166, 0.10), transparent 28%);
+        }
+
+        .page-heading,
+        .stat-card,
+        .quick-action-card,
+        .section-card,
+        .class-card,
+        .instruction-card,
+        .empty-state {
+            background: rgba(15, 23, 42, 0.72);
+            border-color: rgba(148, 163, 184, 0.18);
+            box-shadow: 0 18px 50px rgba(2, 6, 23, 0.35);
+        }
+
+        .page-heading p,
+        .section-subtitle,
+        .stat-label,
+        .text-muted,
+        .instruction-card li,
+        .class-card small {
+            color: #94a3b8 !important;
+        }
+
+        .page-today,
+        .class-meta .badge {
+            color: inherit;
+        }
+
+        .instruction-step,
+        .stat-icon,
+        .action-icon {
+            background: rgba(59, 130, 246, 0.14);
+            color: #93c5fd;
+        }
+
+        .empty-state {
+            background: rgba(15, 23, 42, 0.62);
+        }
+    }
+</style>
+
+<div class="faculty-dashboard">
+    <div class="container-fluid faculty-shell py-4 py-lg-5">
+        <div class="page-heading">
+            <div>
+                <span class="badge bg-primary mb-3">Faculty Console</span>
+                <h1 class="fw-bold mb-2">Welcome, Prof. {{ session.username }}!</h1>
+                <p class="mb-0">Manage sessions, attendance, and classroom insights from one polished dashboard.</p>
+            </div>
+            <div class="text-end">
+                <span class="page-today">{{ today }}</span>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-6 col-xl-3">
+                <div class="stat-card h-100">
+                    <div class="d-flex align-items-center justify-content-between gap-3">
+                        <div>
+                            <div class="stat-label mb-2">Students Present Today</div>
+                            <div class="stat-value h2 fw-bold mb-0">{% if class_summary %}{% set total_present = class_summary | sum(attribute='present_students') %}{{ total_present }}{% else %}0{% endif %}</div>
+                        </div>
+                        <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                            <i class="fas fa-users fa-lg"></i>
+                        </div>
                     </div>
                 </div>
-                <div class="d-grid gap-3">
-                    <a href="{{ url_for('take_attendance') }}" class="btn btn-primary btn-lg">
-                        <i class="fas fa-users me-2"></i>Take Attendance
-                    </a>
-                    <a href="{{ url_for('analytics_page') }}" class="btn btn-outline-primary btn-lg">
-                        <i class="fas fa-chart-line me-2"></i>View Analytics
-                    </a>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="stat-card h-100">
+                    <div class="d-flex align-items-center justify-content-between gap-3">
+                        <div>
+                            <div class="stat-label mb-2">Classes Today</div>
+                            <div class="stat-value h2 fw-bold mb-0">{{ class_summary | length if class_summary else 0 }}</div>
+                        </div>
+                        <div class="stat-icon bg-success bg-opacity-10 text-success">
+                            <i class="fas fa-book fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="stat-card h-100">
+                    <div class="d-flex align-items-center justify-content-between gap-3">
+                        <div>
+                            <div class="stat-label mb-2">Average Attendance</div>
+                            <div class="stat-value h2 fw-bold mb-0">
+                                {% if class_summary %}
+                                    {% set avg_percentage = (class_summary | sum(attribute='percentage')) / (class_summary | length) %}
+                                    {{ "%.1f" | format(avg_percentage) }}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="stat-icon bg-info bg-opacity-10 text-info">
+                            <i class="fas fa-percentage fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="stat-card h-100">
+                    <div class="d-flex align-items-center justify-content-between gap-3">
+                        <div>
+                            <div class="stat-label mb-2">Current Time</div>
+                            <div class="stat-value h2 fw-bold mb-0" id="currentTime">Loading...</div>
+                        </div>
+                        <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                            <i class="fas fa-clock fa-lg"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-lg-6">
-            <div class="glass-card p-4 h-100">
-                <div class="d-flex align-items-start gap-3 mb-4">
-                    <div class="p-3 rounded-4 bg-info text-white"><i class="fas fa-calendar-day fa-2x"></i></div>
-                    <div>
-                        <h3 class="h5 mb-1">Today's Classes</h3>
-                        <p class="text-muted mb-0">Summary of scheduled sessions and attendance progress.</p>
+
+        <div class="row g-4 mb-4">
+            <div class="col-lg-6">
+                <div class="quick-action-card h-100">
+                    <div class="d-flex align-items-start gap-3 mb-4">
+                        <div class="action-icon"><i class="fas fa-bolt fa-lg"></i></div>
+                        <div>
+                            <h3 class="section-title h5 mb-1">Quick Actions</h3>
+                            <p class="section-subtitle mb-0">Launch attendance sessions or review analytics in one click.</p>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-3">
+                        <a href="{{ url_for('take_attendance') }}" class="btn btn-primary btn-lg d-flex align-items-center justify-content-center gap-2 py-3">
+                            <i class="fas fa-users"></i><span>Take Attendance</span>
+                        </a>
+                        <a href="{{ url_for('analytics_page') }}" class="btn btn-outline-primary btn-lg d-flex align-items-center justify-content-center gap-2 py-3">
+                            <i class="fas fa-chart-line"></i><span>View Analytics</span>
+                        </a>
                     </div>
                 </div>
-                {% if class_summary and class_summary|length > 0 %}
-                    <div class="row gy-3">
-                        {% for class_data in class_summary %}
-                        <div class="col-12">
-                            <div class="glass-card p-3 border-0">
-                                <div class="d-flex justify-content-between align-items-center">
+            </div>
+            <div class="col-lg-6">
+                <div class="section-card h-100">
+                    <div class="d-flex align-items-start gap-3 mb-4">
+                        <div class="action-icon text-info"><i class="fas fa-calendar-day fa-lg"></i></div>
+                        <div>
+                            <h3 class="section-title h5 mb-1">Today's Classes</h3>
+                            <p class="section-subtitle mb-0">Summary of scheduled sessions and attendance progress.</p>
+                        </div>
+                    </div>
+                    {% if class_summary and class_summary|length > 0 %}
+                        <div class="d-grid gap-3">
+                            {% for class_data in class_summary %}
+                            <div class="class-card">
+                                <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
                                     <div>
-                                        <h6 class="mb-1">{{ class_data.subject }}</h6>
+                                        <h6 class="mb-1 fw-bold">{{ class_data.subject }}</h6>
                                         <small class="text-muted">{{ class_data.session_type|default('lecture')|title }}</small>
                                     </div>
                                     <div class="text-end">
-                                        <div class="fw-semibold">{{ class_data.present_students|default(0) }}/{{ class_data.total_students|default(0) }}</div>
+                                        <div class="class-count">{{ class_data.present_students|default(0) }}/{{ class_data.total_students|default(0) }}</div>
                                         <small class="text-muted">{{ class_data.percentage|default(0) }}% Present</small>
                                     </div>
                                 </div>
+                                <div class="progress mb-2">
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ class_data.percentage|default(0) }}%;" aria-valuenow="{{ class_data.percentage|default(0) }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <div class="class-meta">
+                                    <span class="badge bg-primary bg-opacity-10 text-primary">Present {{ class_data.present_students|default(0) }}</span>
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary">Total {{ class_data.total_students|default(0) }}</span>
+                                    <span class="badge bg-success bg-opacity-10 text-success">{{ class_data.percentage|default(0) }}% Attendance</span>
+                                </div>
                             </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="text-center py-5 text-muted">
-                        <i class="fas fa-calendar-times fa-3x mb-3"></i>
-                        <p class="mb-0">No classes scheduled for today.</p>
-                    </div>
-                {% endif %}
+                    {% else %}
+                        <div class="empty-state text-center">
+                            <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                            <p class="mb-1 fw-semibold">No classes scheduled for today.</p>
+                            <p class="mb-0 text-muted small">When classes are available, attendance and progress will appear here.</p>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="row g-4">
-        <div class="col-12">
-            <div class="glass-card p-4">
-                <div class="d-flex align-items-start gap-3 mb-4">
-                    <div class="p-3 rounded-4 bg-info text-white"><i class="fas fa-info-circle fa-2x"></i></div>
-                    <div>
-                        <h3 class="h5 mb-1">Faculty Instructions</h3>
-                        <p class="text-muted mb-0">Best practices for operating attendance sessions smoothly.</p>
+        <div class="row g-4">
+            <div class="col-12">
+                <div class="instruction-card">
+                    <div class="d-flex align-items-start gap-3 mb-4">
+                        <div class="action-icon text-info"><i class="fas fa-circle-info fa-lg"></i></div>
+                        <div>
+                            <h3 class="section-title h5 mb-1">Faculty Instructions</h3>
+                            <p class="section-subtitle mb-0">Best practices for operating attendance sessions smoothly.</p>
+                        </div>
                     </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6 class="fw-semibold mb-3"><i class="fas fa-play-circle text-success me-2"></i>Starting a Session</h6>
-                        <ul class="list-unstyled text-muted">
-                            <li class="mb-2"><i class="fas fa-arrow-right text-primary me-2"></i>Select subject and session type.</li>
-                            <li class="mb-2"><i class="fas fa-arrow-right text-primary me-2"></i>Click "Start Attendance Session."</li>
-                            <li class="mb-2"><i class="fas fa-arrow-right text-primary me-2"></i>Activate RFID and face recognition.</li>
-                            <li><i class="fas fa-arrow-right text-primary me-2"></i>Allow students to begin marking attendance.</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="fw-semibold mb-3"><i class="fas fa-user-check text-warning me-2"></i>Taking Attendance</h6>
-                        <ul class="list-unstyled text-muted">
-                            <li class="mb-2"><i class="fas fa-arrow-right text-warning me-2"></i>Monitor attendance counts in real time.</li>
-                            <li class="mb-2"><i class="fas fa-arrow-right text-warning me-2"></i>Verify RFID scans and face matches.</li>
-                            <li class="mb-2"><i class="fas fa-arrow-right text-warning me-2"></i>Review student presence data clearly.</li>
-                            <li><i class="fas fa-arrow-right text-warning me-2"></i>Close the session when complete.</li>
-                        </ul>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="h-100 p-3 p-lg-4 rounded-4 bg-white bg-opacity-50">
+                                <div class="d-flex align-items-center gap-3 mb-3">
+                                    <span class="instruction-step">1</span>
+                                    <h6 class="fw-bold mb-0">Starting a Session</h6>
+                                </div>
+                                <ul class="list-unstyled mb-0">
+                                    <li class="d-flex gap-2"><i class="fas fa-arrow-right text-primary mt-1"></i><span>Select subject and session type.</span></li>
+                                    <li class="d-flex gap-2 mt-2"><i class="fas fa-arrow-right text-primary mt-1"></i><span>Click "Start Attendance Session."</span></li>
+                                    <li class="d-flex gap-2 mt-2"><i class="fas fa-arrow-right text-primary mt-1"></i><span>Activate RFID and face recognition.</span></li>
+                                    <li class="d-flex gap-2 mt-2"><i class="fas fa-arrow-right text-primary mt-1"></i><span>Allow students to begin marking attendance.</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="h-100 p-3 p-lg-4 rounded-4 bg-white bg-opacity-50">
+                                <div class="d-flex align-items-center gap-3 mb-3">
+                                    <span class="instruction-step">2</span>
+                                    <h6 class="fw-bold mb-0">Taking Attendance</h6>
+                                </div>
+                                <ul class="list-unstyled mb-0">
+                                    <li class="d-flex gap-2"><i class="fas fa-arrow-right text-warning mt-1"></i><span>Monitor attendance counts in real time.</span></li>
+                                    <li class="d-flex gap-2 mt-2"><i class="fas fa-arrow-right text-warning mt-1"></i><span>Verify RFID scans and face matches.</span></li>
+                                    <li class="d-flex gap-2 mt-2"><i class="fas fa-arrow-right text-warning mt-1"></i><span>Review student presence data clearly.</span></li>
+                                    <li class="d-flex gap-2 mt-2"><i class="fas fa-arrow-right text-warning mt-1"></i><span>Close the session when complete.</span></li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

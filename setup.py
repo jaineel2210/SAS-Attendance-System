@@ -33,15 +33,6 @@ def create_database():
     except Error as e:
         print(f"Error creating database: {e}")
         return False
-                
-        except Error as e2:
-            print(f"Error creating database: {e2}")
-            print("\n💡 Troubleshooting tips:")
-            print("1. Make sure MySQL server is running")
-            print("2. Check your MySQL credentials in .env file")
-            print("3. Ensure the user has database creation privileges")
-            print("4. Try connecting manually: mysql -u root -p")
-            return False
     
     return False
 

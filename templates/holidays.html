@@ -28,9 +28,22 @@
                                 </div>
                                 <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2">
                                     <span class="badge rounded-pill bg-primary bg-opacity-15 text-primary py-2 px-3">University holidays: {{ university_holiday_count }}</span>
-                                    <div class="input-group input-group-sm shadow-sm">
-                                        <span class="input-group-text bg-white border-end-0" id="holiday-search-label"><i class="fas fa-search"></i></span>
-                                        <input id="holidaySearchInput" type="search" class="form-control border-start-0" placeholder="Search holidays" aria-label="Search holidays" aria-describedby="holiday-search-label">
+                                    <span id="holidayResultCount" class="badge rounded-pill bg-dark bg-opacity-10 text-dark py-2 px-3">Preparing calendar...</span>
+                                    <div class="d-flex flex-column flex-md-row gap-2 w-100 w-sm-auto">
+                                        <div class="input-group input-group-sm shadow-sm flex-grow-1">
+                                            <span class="input-group-text bg-white border-end-0" id="holiday-search-label"><i class="fas fa-search"></i></span>
+                                            <input id="holidaySearchInput" type="search" class="form-control border-start-0" placeholder="Search holidays" aria-label="Search holidays" aria-describedby="holiday-search-label">
+                                        </div>
+                                        <select id="holidayCategoryFilter" class="form-select form-select-sm shadow-sm" style="max-width: 220px;">
+                                            <option value="all">All categories</option>
+                                            <option value="university">University holidays</option>
+                                            <option value="public">Public holidays</option>
+                                            <option value="government">Government holidays</option>
+                                            <option value="academic">Academic holidays</option>
+                                            <option value="exam">Exam holidays</option>
+                                            <option value="event">Events</option>
+                                            <option value="sunday">Sundays</option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
@@ -49,24 +62,42 @@
                                 <div class="glass-panel p-4 h-100">
                                     <h5 class="mb-3">Legend</h5>
                                     <div class="d-flex align-items-center mb-2">
+                                        <span class="legend-swatch bg-emerald me-2"></span>
+                                        <span>Academic Holiday</span>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="legend-swatch bg-cyan me-2"></span>
+                                        <span>Exam Holiday</span>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="legend-swatch bg-teal me-2"></span>
+                                        <span>Event</span>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
                                         <span class="legend-swatch bg-danger me-2"></span>
                                         <span>Public Holiday</span>
                                     </div>
                                     <div class="d-flex align-items-center mb-2">
                                         <span class="legend-swatch bg-warning me-2"></span>
-                                        <span>Sunday</span>
+                                        <span>Government Holiday</span>
                                     </div>
-                                    <div class="d-flex align-items-center">
+                                    <div class="d-flex align-items-center mb-2">
                                         <span class="legend-swatch bg-primary me-2"></span>
                                         <span>University Holiday</span>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <span class="legend-swatch bg-orange me-2"></span>
+                                        <span>Sunday</span>
                                     </div>
                                 </div>
                                 <div class="glass-panel p-4">
                                     <h5 class="mb-3">How it works</h5>
                                     <ul class="list-unstyled mb-0 small text-muted">
                                         <li class="mb-2"><i class="fas fa-circle text-danger me-2"></i>Public holidays appear in red.</li>
-                                        <li class="mb-2"><i class="fas fa-circle text-warning me-2"></i>Sundays are highlighted in orange.</li>
+                                        <li class="mb-2"><i class="fas fa-circle text-warning me-2"></i>Government holidays use an amber accent.</li>
                                         <li class="mb-2"><i class="fas fa-circle text-primary me-2"></i>University holidays show in blue.</li>
+                                        <li class="mb-2"><i class="fas fa-circle text-success me-2"></i>Month, week, day, and list views are available in the calendar toolbar.</li>
+                                        <li class="mb-2"><i class="fas fa-circle text-info me-2"></i>Use search or category filters to narrow the schedule.</li>
                                         <li>Click any event to view details.</li>
                                     </ul>
                                 </div>
@@ -108,8 +139,8 @@
 {% endblock %}
 
 {% block scripts %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" integrity="sha384-CmAVe1nGz2iQY70eE6fC+fQ/Q47s0ipL1iYmsuENHatyUAgQv7c1P6mHm3szX1rX" crossorigin="anonymous">
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js" integrity="sha384-cLXk+6jVpJsj1BgvQm2ulk6gjM4u+I1k74q7QxBrBh3Vb0KgJvUFshigUj3ZtF0E" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@7.0.2/skeleton.css" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@7.0.2/all/global.min.js" crossorigin="anonymous"></script>
 <style>
     #holiday-calendar {
         min-height: 620px;
@@ -120,6 +151,22 @@
         height: 18px;
         border-radius: 4px;
         display: inline-block;
+    }
+
+    .bg-orange {
+        background-color: #f59e0b !important;
+    }
+
+    .bg-cyan {
+        background-color: #06b6d4 !important;
+    }
+
+    .bg-emerald {
+        background-color: #10b981 !important;
+    }
+
+    .bg-teal {
+        background-color: #14b8a6 !important;
     }
 
     .fc .fc-toolbar-chunk button {
@@ -136,6 +183,11 @@
         background: rgba(59, 130, 246, 0.12);
     }
 
+    .fc .fc-timegrid-col.fc-day-today,
+    .fc .fc-list-day.fc-day-today {
+        background: rgba(59, 130, 246, 0.08);
+    }
+
     .fc .fc-daygrid-day.fc-day-sat .fc-daygrid-day-number,
     .fc .fc-daygrid-day.fc-day-sun .fc-daygrid-day-number {
         font-weight: 700;
@@ -143,6 +195,10 @@
 
     .fc .fc-daygrid-day.fc-day-sun {
         background-color: rgba(251, 191, 36, 0.12);
+    }
+
+    .fc .fc-list-day-cushion {
+        background: rgba(59, 130, 246, 0.12);
     }
 
     .fc .fc-event {
@@ -163,44 +219,39 @@
         color: #ffffff !important;
     }
 
+    .fc .fc-event.fc-event-government {
+        background-color: #f59e0b !important;
+        border-color: #d97706 !important;
+        color: #1f2937 !important;
+    }
+
+    .fc .fc-event.fc-event-academic {
+        background-color: #10b981 !important;
+        border-color: #059669 !important;
+        color: #ffffff !important;
+    }
+
+    .fc .fc-event.fc-event-exam {
+        background-color: #06b6d4 !important;
+        border-color: #0891b2 !important;
+        color: #ffffff !important;
+    }
+
+    .fc .fc-event.fc-event-event {
+        background-color: #14b8a6 !important;
+        border-color: #0f766e !important;
+        color: #ffffff !important;
+    }
+
     .fc .fc-event.fc-event-university {
         background-color: #3b82f6 !important;
         border-color: #1d4ed8 !important;
         color: #ffffff !important;
     }
 
-    @media (prefers-color-scheme: dark) {
-        body {
-            background: #0f172a;
-            color: #e2e8f0;
-        }
-        .card {
-            background: #111827;
-            border-color: rgba(148, 163, 184, 0.2);
-        }
-        .card-header {
-            background: #1e293b !important;
-        }
-        .fc, .fc * {
-            color: #e2e8f0 !important;
-        }
-        .fc .fc-toolbar-title,
-        .fc .fc-col-header-cell-cushion,
-        .fc .fc-scrollgrid-section td {
-            color: #e2e8f0 !important;
-        }
-        .fc .fc-daygrid-day {
-            background: #0f172a;
-        }
-        .fc .fc-daygrid-day.fc-day-sun {
-            background-color: rgba(245, 158, 11, 0.15);
-        }
-        .fc .fc-daygrid-day.fc-day-today {
-            background: rgba(59, 130, 246, 0.18);
-        }
-        .fc .fc-daygrid-day-frame {
-            border-color: rgba(148, 163, 184, 0.12);
-        }
+    .holiday-detail-badge {
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
     }
 </style>
 <script type="application/json" id="university-holiday-data">
@@ -208,9 +259,19 @@
 </script>
 <script>
     const fullCalendarFallbackUrls = [
-        'https://unpkg.com/fullcalendar@6.1.8/index.global.min.js',
-        'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'
+        'https://unpkg.com/fullcalendar@7.0.2/index.global.min.js',
+        'https://cdn.jsdelivr.net/npm/fullcalendar@7.0.2/all/global.min.js'
     ];
+
+    const categoryMetaMap = {
+        public: { label: 'Public Holiday', className: 'fc-event-public' },
+        government: { label: 'Government Holiday', className: 'fc-event-government' },
+        university: { label: 'University Holiday', className: 'fc-event-university' },
+        academic: { label: 'Academic Holiday', className: 'fc-event-academic' },
+        exam: { label: 'Exam Holiday', className: 'fc-event-exam' },
+        event: { label: 'Event', className: 'fc-event-event' },
+        sunday: { label: 'Sunday', className: 'fc-event-sunday' }
+    };
 
     function loadFullCalendarFallback(index = 0) {
         if (index >= fullCalendarFallbackUrls.length) {
@@ -220,6 +281,7 @@
             document.getElementById('holiday-calendar').appendChild(fallbackMessage);
             return;
         }
+
         const script = document.createElement('script');
         script.src = fullCalendarFallbackUrls[index];
         script.crossOrigin = 'anonymous';
@@ -230,179 +292,361 @@
         document.head.appendChild(script);
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
+    function getDateKey(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function parseHolidayData() {
+        const holidayDataElement = document.getElementById('university-holiday-data');
+        if (!holidayDataElement) {
+            return [];
+        }
+
+        try {
+            return JSON.parse(holidayDataElement.textContent || '[]');
+        } catch (error) {
+            console.warn('Unable to parse holiday data', error);
+            return [];
+        }
+    }
+
+    function inferCategory(rawEvent) {
+        const explicitCategory = String(rawEvent.category || rawEvent.type || rawEvent.holiday_type || '').trim().toLowerCase();
+        if (explicitCategory && categoryMetaMap[explicitCategory]) {
+            return explicitCategory;
+        }
+
+        const title = String(rawEvent.title || '').toLowerCase();
+        if (/(exam|exam week|mid[-\s]?term|finals?|assessment|practical)/.test(title)) {
+            return 'exam';
+        }
+        if (/(orientation|convocation|annual day|sports day|freshers|workshop|seminar|event)/.test(title)) {
+            return 'event';
+        }
+        if (/(semester break|term break|academic break|academic holiday|vacation|recess)/.test(title)) {
+            return 'academic';
+        }
+        if (/(republic day|independence day|gandhi jayanti|labour day|labor day|constitution day)/.test(title)) {
+            return 'government';
+        }
+
+        return 'university';
+    }
+
+    function normalizeHolidayEvent(rawEvent, fallbackCategory) {
+        const category = inferCategory({...rawEvent, category: rawEvent.category || fallbackCategory});
+        const meta = categoryMetaMap[category] || categoryMetaMap.university;
+        const description = rawEvent.description || rawEvent.notes || rawEvent.detail || '';
+        const classNames = [meta.className];
+
+        if (rawEvent.className) {
+            classNames.push(...String(rawEvent.className).split(/\s+/).filter(Boolean));
+        }
+        if (Array.isArray(rawEvent.classNames)) {
+            classNames.push(...rawEvent.classNames.filter(Boolean));
+        }
+
+        return {
+            id: rawEvent.id || rawEvent.event_id || `${category}-${String(rawEvent.start || rawEvent.holiday_date || rawEvent.date || rawEvent.title || 'holiday')}`,
+            title: rawEvent.title || 'Holiday',
+            start: rawEvent.start || rawEvent.holiday_date || rawEvent.date,
+            allDay: rawEvent.allDay !== false,
+            classNames: Array.from(new Set(classNames)),
+            extendedProps: {
+                category,
+                categoryLabel: meta.label,
+                description,
+                source: rawEvent.source || (category === 'university' ? 'database' : 'calendar'),
+                raw: rawEvent
+            }
+        };
+    }
+
+    function buildStatutoryHolidayEvents(year) {
+        const publicHolidays = [
+            { month: 3, day: 8, title: 'Holi', description: 'Festival of colors. Date may vary, verify with university calendar.', category: 'public' },
+            { month: 12, day: 25, title: 'Christmas Day', description: 'Christian holiday celebrated nationwide.', category: 'public' }
+        ];
+
+        const governmentHolidays = [
+            { month: 1, day: 26, title: 'Republic Day', description: 'National holiday celebrating the Republic of India.', category: 'government' },
+            { month: 5, day: 1, title: 'Labour Day', description: 'International Workers Day.', category: 'government' },
+            { month: 8, day: 15, title: 'Independence Day', description: 'National holiday commemorating independence.', category: 'government' },
+            { month: 10, day: 2, title: 'Gandhi Jayanti', description: 'Birth anniversary of Mahatma Gandhi.', category: 'government' }
+        ];
+
+        return [...publicHolidays, ...governmentHolidays].map(item => normalizeHolidayEvent({
+            id: `${item.category}-${year}-${item.month}-${item.day}`,
+            title: item.title,
+            start: `${year}-${String(item.month).padStart(2, '0')}-${String(item.day).padStart(2, '0')}`,
+            description: item.description,
+            category: item.category,
+            source: 'calendar'
+        }, item.category));
+    }
+
+    function buildSundayEvents(year) {
+        const events = [];
+        const date = new Date(year, 0, 1);
+
+        while (date.getFullYear() === year) {
+            if (date.getDay() === 0) {
+                events.push(normalizeHolidayEvent({
+                    id: `sunday-${getDateKey(date)}`,
+                    title: 'Sunday',
+                    start: getDateKey(date),
+                    description: 'Weekly Sunday - campus closed or weekend schedule.',
+                    category: 'sunday',
+                    source: 'calendar'
+                }, 'sunday'));
+            }
+
+            date.setDate(date.getDate() + 1);
+        }
+
+        return events;
+    }
+
+    function initializeHolidayCalendar() {
+        if (typeof FullCalendar === 'undefined') {
+            loadFullCalendarFallback(0);
+            return;
+        }
+
         const loadingOverlay = document.getElementById('calendarLoading');
         const emptyState = document.getElementById('emptyUniversityHolidayState');
         const searchInput = document.getElementById('holidaySearchInput');
-        const holidayDataElement = document.getElementById('university-holiday-data');
-        const universityHolidays = holidayDataElement ? JSON.parse(holidayDataElement.textContent || '[]') : [];
+        const categoryFilter = document.getElementById('holidayCategoryFilter');
+        const resultCountBadge = document.getElementById('holidayResultCount');
+        const calendarEl = document.getElementById('holiday-calendar');
+        const detailModalEl = document.getElementById('holidayDetailModal');
+        const detailModal = window.bootstrap && bootstrap.Modal ? new bootstrap.Modal(detailModalEl) : null;
+        const detailContent = document.getElementById('holidayDetailContent');
+        const detailTitle = document.getElementById('holidayDetailModalLabel');
+        const universityEvents = parseHolidayData().map(event => normalizeHolidayEvent(event, 'university'));
+        const currentYear = new Date().getFullYear();
+        const allHolidayEvents = [
+            ...buildStatutoryHolidayEvents(currentYear - 1),
+            ...buildStatutoryHolidayEvents(currentYear),
+            ...buildStatutoryHolidayEvents(currentYear + 1),
+            ...buildSundayEvents(currentYear - 1),
+            ...buildSundayEvents(currentYear),
+            ...buildSundayEvents(currentYear + 1),
+            ...universityEvents
+        ];
 
-        if (universityHolidays.length === 0) {
+        if (emptyState && universityEvents.length === 0) {
             emptyState.classList.remove('d-none');
         }
 
         function formatFullDate(value) {
-            return new Intl.DateTimeFormat('en-IN', { year: 'numeric', month: 'long', day: 'numeric' }).format(value);
+            return new Intl.DateTimeFormat('en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }).format(value);
         }
 
-        function buildPublicHolidayEvents(year) {
-            const definitions = [
-                { month: 1, day: 26, title: 'Republic Day', description: 'National holiday celebrating the Republic of India.' },
-                { month: 3, day: 8, title: 'Holi', description: 'Festival of colors. Date may vary, verify with university calendar.' },
-                { month: 5, day: 1, title: 'Labour Day', description: 'International Workers’ Day.' },
-                { month: 8, day: 15, title: 'Independence Day', description: 'National holiday commemorating independence.' },
-                { month: 10, day: 2, title: 'Gandhi Jayanti', description: 'Birth anniversary of Mahatma Gandhi.' },
-                { month: 12, day: 25, title: 'Christmas Day', description: 'Christian holiday celebrated nationwide.' }
-            ];
-            return definitions.map(item => ({
-                id: `public-${year}-${item.month}-${item.day}`,
-                title: item.title,
-                start: `${year}-${String(item.month).padStart(2, '0')}-${String(item.day).padStart(2, '0')}`,
-                description: item.description,
-                category: 'public',
-                classNames: ['fc-event-public']
-            }));
-        }
-
-        function buildSundayEvents(year) {
-            const events = [];
-            const date = new Date(year, 0, 1);
-            while (date.getFullYear() === year) {
-                if (date.getDay() === 0) {
-                    events.push({
-                        id: `sunday-${date.toISOString().slice(0, 10)}`,
-                        title: 'Sunday',
-                        start: date.toISOString().slice(0, 10),
-                        description: 'Weekly Sunday - campus closed or weekend schedule.',
-                        category: 'sunday',
-                        classNames: ['fc-event-sunday']
-                    });
-                }
-                date.setDate(date.getDate() + 1);
-            }
-            return events;
-        }
-
-        const currentYear = new Date().getFullYear();
-        const calendarEvents = [
-            ...buildPublicHolidayEvents(currentYear - 1),
-            ...buildPublicHolidayEvents(currentYear),
-            ...buildPublicHolidayEvents(currentYear + 1),
-            ...buildSundayEvents(currentYear - 1),
-            ...buildSundayEvents(currentYear),
-            ...buildSundayEvents(currentYear + 1),
-            ...universityHolidays
-        ];
-
-        function initializeHolidayCalendar() {
-            if (typeof FullCalendar === 'undefined') {
-                return loadFullCalendarFallback(0);
+        function formatEventDate(event) {
+            if (!event.start) {
+                return 'Date not available';
             }
 
-            const calendarEl = document.getElementById('holiday-calendar');
-            const detailModalEl = document.getElementById('holidayDetailModal');
-            const detailModal = new bootstrap.Modal(detailModalEl);
-            const detailContent = document.getElementById('holidayDetailContent');
-            const detailTitle = document.getElementById('holidayDetailModalLabel');
-
-            function showDetailsForDate(date, events) {
-                const displayDate = formatFullDate(date);
-                detailTitle.textContent = `Date details: ${displayDate}`;
-                if (!events.length) {
-                    detailContent.innerHTML = `<div class="text-center py-4 text-muted">No holidays found for this date.</div>`;
-                    detailModal.show();
-                    return;
-                }
-                detailContent.innerHTML = events.map(event => {
-                    const category = event.extendedProps.category || event._def.extendedProps?.category || 'holiday';
-                    const label = category === 'public' ? 'Public Holiday' : category === 'university' ? 'University Holiday' : 'Sunday';
-                    return `
-                        <div class="mb-3 p-3 rounded-3 bg-light bg-opacity-50">
-                            <h5 class="mb-1">${event.title}</h5>
-                            <p class="mb-1 text-muted"><strong>${label}</strong></p>
-                            <p class="mb-0">${event.extendedProps.description || event._def.extendedProps?.description || 'No additional details available.'}</p>
-                        </div>
-                    `;
-                }).join('');
-                detailModal.show();
-            }
-
-            const calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                headerToolbar: {
-                    left: 'prevYear,prev,next,nextYear today',
-                    center: 'title',
-                    right: 'dayGridMonth'
-                },
-                navLinks: true,
-                selectable: true,
-                selectMirror: true,
-                dayMaxEvents: true,
-                height: 'auto',
-                contentHeight: 'auto',
-                events: calendarEvents,
-                eventClick: function(info) {
-                    showDetailsForDate(info.event.start, [info.event]);
-                },
-                dateClick: function(info) {
-                    const clickedDate = info.dateStr;
-                    const matchingEvents = calendar.getEvents().filter(event => event.startStr === clickedDate);
-                    showDetailsForDate(info.date, matchingEvents);
-                },
-                eventDidMount: function(info) {
-                    const description = info.event.extendedProps.description || info.event._def.extendedProps?.description;
-                    if (description) {
-                        info.el.setAttribute('title', description);
-                        if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
-                            new bootstrap.Tooltip(info.el, { title: description, placement: 'top', trigger: 'hover focus' });
-                        }
-                    }
-                },
-                dayCellDidMount: function(info) {
-                    if (info.date.getDay() === 0) {
-                        info.el.classList.add('fc-day-sun');
-                    }
-                    if (info.date.toDateString() === new Date().toDateString()) {
-                        info.el.classList.add('fc-day-today');
-                    }
-                },
-                loading: function(isLoading) {
-                    if (loadingOverlay) {
-                        loadingOverlay.style.display = isLoading ? 'flex' : 'none';
-                    }
-                }
+            const start = event.start;
+            const end = event.end && event.end.valueOf() !== start.valueOf() ? event.end : null;
+            const formatter = new Intl.DateTimeFormat('en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
             });
 
-            calendar.render();
-
-            function filterCalendarEvents() {
-                const query = searchInput.value.trim().toLowerCase();
-                const filtered = calendarEvents.filter(event => {
-                    return event.title.toLowerCase().includes(query) ||
-                        (event.description || '').toLowerCase().includes(query) ||
-                        (event.category || '').toLowerCase().includes(query);
-                });
-                calendar.removeAllEvents();
-                calendar.addEventSource(filtered);
+            if (!end) {
+                return formatter.format(start);
             }
 
-            searchInput.addEventListener('input', filterCalendarEvents);
+            return `${formatter.format(start)} to ${formatter.format(end)}`;
         }
 
-        if (typeof FullCalendar !== 'undefined') {
-            initializeHolidayCalendar();
-        } else {
-            loadFullCalendarFallback(0);
+        function buildDetailCard(event) {
+            const extendedProps = event.extendedProps || {};
+            const meta = categoryMetaMap[extendedProps.category] || categoryMetaMap.university;
+            const description = extendedProps.description || 'No additional details available.';
+
+            return `
+                <div class="mb-3 p-3 rounded-3 bg-light bg-opacity-50 border">
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start gap-2 mb-2">
+                        <div>
+                            <h5 class="mb-1">${escapeHtml(event.title || 'Holiday')}</h5>
+                            <div class="small text-muted">${escapeHtml(formatEventDate(event))}</div>
+                        </div>
+                        <span class="badge rounded-pill bg-secondary holiday-detail-badge">${escapeHtml(meta.label)}</span>
+                    </div>
+                    <p class="mb-1 text-muted small">Source: ${escapeHtml(extendedProps.source || 'calendar')}</p>
+                    <p class="mb-0">${escapeHtml(description)}</p>
+                </div>
+            `;
         }
 
-        // If the library is loaded but the calendar container is hidden or not yet sized,
-        // render again after a small delay to avoid a blank rendering area.
+        function showDetailsForDate(date, events) {
+            if (!detailModal) {
+                return;
+            }
+
+            detailTitle.textContent = `Date details: ${formatFullDate(date)}`;
+
+            if (!events.length) {
+                detailContent.innerHTML = '<div class="text-center py-4 text-muted">No holidays found for this date.</div>';
+                detailModal.show();
+                return;
+            }
+
+            detailContent.innerHTML = events.map(buildDetailCard).join('');
+            detailModal.show();
+        }
+
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prevYear,prev,next,nextYear today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+            },
+            views: {
+                dayGridMonth: { buttonText: 'Month' },
+                timeGridWeek: { buttonText: 'Week' },
+                timeGridDay: { buttonText: 'Day' },
+                listWeek: { buttonText: 'List' }
+            },
+            navLinks: true,
+            selectable: true,
+            selectMirror: true,
+            dayMaxEvents: true,
+            height: 'auto',
+            contentHeight: 'auto',
+            nowIndicator: true,
+            eventTimeFormat: {
+                hour: 'numeric',
+                minute: '2-digit',
+                meridiem: 'short'
+            },
+            eventSources: [{
+                id: 'holiday-master',
+                events: allHolidayEvents
+            }],
+            eventDidMount: function(info) {
+                const description = info.event.extendedProps.description;
+                if (description) {
+                    info.el.setAttribute('title', description);
+                }
+            },
+            eventClick: function(info) {
+                info.jsEvent.preventDefault();
+                showDetailsForDate(info.event.start || new Date(), [info.event]);
+            },
+            dateClick: function(info) {
+                const clickedKey = info.dateStr.slice(0, 10);
+                const matchingEvents = calendar.getEvents().filter(event => {
+                    if (!event.start) {
+                        return false;
+                    }
+                    return getDateKey(event.start) === clickedKey;
+                });
+
+                showDetailsForDate(info.date, matchingEvents);
+            },
+            loading: function(isLoading) {
+                if (loadingOverlay) {
+                    loadingOverlay.style.display = isLoading ? 'flex' : 'none';
+                }
+            },
+            eventClassNames: function(info) {
+                const category = info.event.extendedProps.category || 'university';
+                const meta = categoryMetaMap[category] || categoryMetaMap.university;
+                return [meta.className];
+            },
+            dayCellDidMount: function(info) {
+                if (info.date.getDay() === 0) {
+                    info.el.classList.add('fc-day-sun');
+                }
+
+                if (getDateKey(info.date) === getDateKey(new Date())) {
+                    info.el.classList.add('fc-day-today');
+                }
+            }
+        });
+
+        function applyFilters() {
+            const searchQuery = String(searchInput.value || '').trim().toLowerCase();
+            const categoryValue = String(categoryFilter.value || 'all').toLowerCase();
+
+            const filteredEvents = allHolidayEvents.filter(event => {
+                const extendedProps = event.extendedProps || {};
+                const category = String(extendedProps.category || 'university').toLowerCase();
+                const title = String(event.title || '').toLowerCase();
+                const description = String(extendedProps.description || '').toLowerCase();
+                const matchesCategory = categoryValue === 'all' || category === categoryValue;
+                const matchesSearch = !searchQuery || title.includes(searchQuery) || description.includes(searchQuery) || category.includes(searchQuery);
+                return matchesCategory && matchesSearch;
+            });
+
+            calendar.removeAllEventSources();
+            calendar.addEventSource({
+                id: 'filtered-holidays',
+                events: filteredEvents
+            });
+
+            if (resultCountBadge) {
+                resultCountBadge.textContent = `${filteredEvents.length} visible`;
+            }
+        }
+
+        calendar.render();
+        applyFilters();
+
+        searchInput.addEventListener('input', applyFilters);
+        categoryFilter.addEventListener('change', applyFilters);
+
         setTimeout(function() {
-            const calendarEl = document.getElementById('holiday-calendar');
             if (calendarEl && calendarEl.innerHTML.trim().length === 0 && typeof FullCalendar !== 'undefined') {
-                initializeHolidayCalendar();
+                calendar.updateSize();
             }
         }, 250);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const loadingOverlay = document.getElementById('calendarLoading');
+        const resultCountBadge = document.getElementById('holidayResultCount');
+
+        if (resultCountBadge) {
+            resultCountBadge.textContent = 'Preparing calendar...';
+        }
+
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'flex';
+        }
+
+        initializeHolidayCalendar();
+
+        window.setTimeout(function() {
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
+            if (resultCountBadge && resultCountBadge.textContent === 'Preparing calendar...') {
+                resultCountBadge.textContent = 'Ready';
+            }
+        }, 500);
     });
 </script>
 {% endblock %}
